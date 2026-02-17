@@ -13,6 +13,7 @@ from .._utils import get_layer, require_layers
 
 def cross_dataset_consistency(
     adatas_dict: dict[str, AnnData],
+    case_insensitive: bool = True,
 ) -> pd.DataFrame:
     """Compare per-gene median gamma across multiple datasets.
 
@@ -24,6 +25,9 @@ def cross_dataset_consistency(
     adatas_dict
         Dictionary mapping dataset name to analyzed AnnData
         (each must have ``gamma`` layer).
+    case_insensitive
+        Match gene symbols case-insensitively (default True). Useful
+        for cross-species comparisons (mouse Titlecase vs human UPPER).
 
     Returns
     -------
@@ -44,22 +48,50 @@ def cross_dataset_consistency(
     records = []
     for i, name_a in enumerate(names):
         for name_b in names[i + 1:]:
-            shared = medians[name_a].index.intersection(medians[name_b].index)
-            n_shared = len(shared)
+            if case_insensitive:
+                # Build uppercase-to-original mapping for both
+                map_a = {}
+                for g in medians[name_a].index:
+                    if isinstance(g, str):
+                        map_a[g.upper()] = g
+                map_b = {}
+                for g in medians[name_b].index:
+                    if isinstance(g, str):
+                        map_b[g.upper()] = g
+                shared_upper = set(map_a.keys()) & set(map_b.keys())
+                n_shared = len(shared_upper)
 
-            if n_shared < 3:
-                sp_r = pe_r = np.nan
-            else:
-                ga = medians[name_a][shared].values.astype(float)
-                gb = medians[name_b][shared].values.astype(float)
-                valid = np.isfinite(ga) & np.isfinite(gb)
-                ga, gb = ga[valid], gb[valid]
-
-                if len(ga) < 3:
+                if n_shared < 3:
                     sp_r = pe_r = np.nan
                 else:
-                    sp_r, _ = stats.spearmanr(ga, gb)
-                    pe_r, _ = stats.pearsonr(ga, gb)
+                    ga = np.array([medians[name_a][map_a[u]] for u in shared_upper], dtype=float)
+                    gb = np.array([medians[name_b][map_b[u]] for u in shared_upper], dtype=float)
+                    valid = np.isfinite(ga) & np.isfinite(gb)
+                    ga, gb = ga[valid], gb[valid]
+                    n_shared = len(ga)
+
+                    if len(ga) < 3:
+                        sp_r = pe_r = np.nan
+                    else:
+                        sp_r, _ = stats.spearmanr(ga, gb)
+                        pe_r, _ = stats.pearsonr(ga, gb)
+            else:
+                shared = medians[name_a].index.intersection(medians[name_b].index)
+                n_shared = len(shared)
+
+                if n_shared < 3:
+                    sp_r = pe_r = np.nan
+                else:
+                    ga = medians[name_a][shared].values.astype(float)
+                    gb = medians[name_b][shared].values.astype(float)
+                    valid = np.isfinite(ga) & np.isfinite(gb)
+                    ga, gb = ga[valid], gb[valid]
+
+                    if len(ga) < 3:
+                        sp_r = pe_r = np.nan
+                    else:
+                        sp_r, _ = stats.spearmanr(ga, gb)
+                        pe_r, _ = stats.pearsonr(ga, gb)
 
             records.append({
                 "dataset_a": name_a,
