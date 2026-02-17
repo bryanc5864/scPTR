@@ -1,0 +1,249 @@
+gene_symbol,organism,description
+ELAVL1,human,AU-rich element RNA-binding protein 1 (HuR)
+ELAVL2,human,ELAV-like protein 2 (HuB)
+ELAVL3,human,ELAV-like protein 3 (HuC)
+ELAVL4,human,ELAV-like protein 4 (HuD)
+HNRNPA1,human,Heterogeneous nuclear ribonucleoprotein A1
+HNRNPA2B1,human,Heterogeneous nuclear ribonucleoprotein A2/B1
+HNRNPC,human,Heterogeneous nuclear ribonucleoprotein C
+HNRNPD,human,Heterogeneous nuclear ribonucleoprotein D (AUF1)
+HNRNPF,human,Heterogeneous nuclear ribonucleoprotein F
+HNRNPH1,human,Heterogeneous nuclear ribonucleoprotein H1
+HNRNPK,human,Heterogeneous nuclear ribonucleoprotein K
+HNRNPL,human,Heterogeneous nuclear ribonucleoprotein L
+HNRNPM,human,Heterogeneous nuclear ribonucleoprotein M
+HNRNPU,human,Heterogeneous nuclear ribonucleoprotein U
+RBFOX1,human,RNA binding fox-1 homolog 1
+RBFOX2,human,RNA binding fox-1 homolog 2
+RBFOX3,human,RNA binding fox-1 homolog 3 (NeuN)
+RBM3,human,RNA-binding motif protein 3
+RBM4,human,RNA-binding motif protein 4
+RBM5,human,RNA-binding motif protein 5
+RBM10,human,RNA-binding motif protein 10
+RBM15,human,RNA-binding motif protein 15
+RBM20,human,RNA-binding motif protein 20
+RBM24,human,RNA-binding motif protein 24
+RBM25,human,RNA-binding motif protein 25
+RBM38,human,RNA-binding motif protein 38 (RNPC1)
+RBM39,human,RNA-binding motif protein 39
+RBM47,human,RNA-binding motif protein 47
+SRSF1,human,Serine/arginine-rich splicing factor 1
+SRSF2,human,Serine/arginine-rich splicing factor 2
+SRSF3,human,Serine/arginine-rich splicing factor 3
+SRSF4,human,Serine/arginine-rich splicing factor 4
+SRSF5,human,Serine/arginine-rich splicing factor 5
+SRSF6,human,Serine/arginine-rich splicing factor 6
+SRSF7,human,Serine/arginine-rich splicing factor 7
+SRSF9,human,Serine/arginine-rich splicing factor 9
+SRSF10,human,Serine/arginine-rich splicing factor 10
+SRSF11,human,Serine/arginine-rich splicing factor 11
+TRA2A,human,Transformer-2 protein homolog alpha
+TRA2B,human,Transformer-2 protein homolog beta
+PTBP1,human,Polypyrimidine tract-binding protein 1
+PTBP2,human,Polypyrimidine tract-binding protein 2
+PTBP3,human,Polypyrimidine tract-binding protein 3
+PCBP1,human,Poly(rC)-binding protein 1
+PCBP2,human,Poly(rC)-binding protein 2
+PCBP3,human,Poly(rC)-binding protein 3
+PCBP4,human,Poly(rC)-binding protein 4
+IGF2BP1,human,Insulin-like growth factor 2 mRNA-binding protein 1
+IGF2BP2,human,Insulin-like growth factor 2 mRNA-binding protein 2
+IGF2BP3,human,Insulin-like growth factor 2 mRNA-binding protein 3
+FMR1,human,Fragile X mental retardation protein 1
+FXR1,human,Fragile X mental retardation protein autosomal homolog 1
+FXR2,human,Fragile X mental retardation protein autosomal homolog 2
+MBNL1,human,Muscleblind-like protein 1
+MBNL2,human,Muscleblind-like protein 2
+MBNL3,human,Muscleblind-like protein 3
+CELF1,human,CUGBP Elav-like family member 1
+CELF2,human,CUGBP Elav-like family member 2
+CELF4,human,CUGBP Elav-like family member 4
+CELF5,human,CUGBP Elav-like family member 5
+CELF6,human,CUGBP Elav-like family member 6
+QKI,human,Quaking homolog KH domain RNA binding
+KHDRBS1,human,KH domain-containing RNA-binding signal transduction-associated protein 1 (Sam68)
+KHDRBS2,human,KH domain-containing signal transduction-associated protein 2
+KHDRBS3,human,KH domain-containing signal transduction-associated protein 3
+KHSRP,human,KH-type splicing regulatory protein (FUBP2)
+TIA1,human,T-cell-restricted intracellular antigen-1
+TIAL1,human,TIA1 cytotoxic granule-associated RNA-binding protein-like 1
+ZFP36,human,Zinc finger protein 36 (Tristetraprolin TTP)
+ZFP36L1,human,Zinc finger protein 36 C3H type-like 1
+ZFP36L2,human,Zinc finger protein 36 C3H type-like 2
+CPEB1,human,Cytoplasmic polyadenylation element-binding protein 1
+CPEB2,human,Cytoplasmic polyadenylation element-binding protein 2
+CPEB3,human,Cytoplasmic polyadenylation element-binding protein 3
+CPEB4,human,Cytoplasmic polyadenylation element-binding protein 4
+PUM1,human,Pumilio RNA-binding family member 1
+PUM2,human,Pumilio RNA-binding family member 2
+STAU1,human,Staufen double-stranded RNA-binding protein 1
+STAU2,human,Staufen double-stranded RNA-binding protein 2
+UPF1,human,Up-frameshift suppressor 1 (Rent1)
+UPF2,human,Up-frameshift suppressor 2 (Rent2)
+UPF3B,human,Up-frameshift suppressor 3B
+SMG1,human,SMG1 nonsense mediated mRNA decay associated PI3K
+DIS3,human,DIS3 homolog exosome endoribonuclease and 3'-5' exoribonuclease
+DIS3L2,human,DIS3-like exonuclease 2
+XRN1,human,5'-3' exoribonuclease 1
+XRN2,human,5'-3' exoribonuclease 2
+EXOSC10,human,Exosome component 10
+CNOT1,human,CCR4-NOT transcription complex subunit 1
+CNOT6,human,CCR4-NOT transcription complex subunit 6
+CNOT7,human,CCR4-NOT transcription complex subunit 7
+PABPC1,human,Poly(A)-binding protein cytoplasmic 1
+PABPC4,human,Poly(A)-binding protein cytoplasmic 4
+PABPN1,human,Poly(A)-binding protein nuclear 1
+MSI1,human,Musashi RNA-binding protein 1
+MSI2,human,Musashi RNA-binding protein 2
+LIN28A,human,Lin-28 homolog A
+LIN28B,human,Lin-28 homolog B
+AGO1,human,Argonaute RISC catalytic component 1
+AGO2,human,Argonaute RISC catalytic component 2
+AGO3,human,Argonaute RISC catalytic component 3
+AGO4,human,Argonaute RISC catalytic component 4
+DROSHA,human,Drosha ribonuclease III
+DICER1,human,Dicer 1 ribonuclease III
+DGCR8,human,DiGeorge syndrome critical region gene 8
+ADAR,human,Adenosine deaminase RNA specific
+ADARB1,human,Adenosine deaminase RNA specific B1 (ADAR2)
+APOBEC1,human,Apolipoprotein B mRNA editing enzyme catalytic subunit 1
+CPSF1,human,Cleavage and polyadenylation specificity factor subunit 1
+CPSF2,human,Cleavage and polyadenylation specificity factor subunit 2
+CPSF3,human,Cleavage and polyadenylation specificity factor subunit 3
+CPSF4,human,Cleavage and polyadenylation specificity factor subunit 4
+CSTF1,human,Cleavage stimulation factor subunit 1
+CSTF2,human,Cleavage stimulation factor subunit 2
+CSTF3,human,Cleavage stimulation factor subunit 3
+NUDT21,human,Nudix hydrolase 21 (CFIm25)
+FIP1L1,human,Factor interacting with PAPOLA and CPSF1
+METTL3,human,Methyltransferase 3 N6-adenosine-methyltransferase
+METTL14,human,Methyltransferase 14 N6-adenosine-methyltransferase
+WTAP,human,Wilms tumor 1-associating protein
+YTHDF1,human,YTH N6-methyladenosine RNA-binding protein 1
+YTHDF2,human,YTH N6-methyladenosine RNA-binding protein 2
+YTHDF3,human,YTH N6-methyladenosine RNA-binding protein 3
+YTHDC1,human,YTH domain-containing protein 1
+YTHDC2,human,YTH domain-containing protein 2
+ALKBH5,human,AlkB homolog 5 RNA demethylase
+FTO,human,Fat mass and obesity-associated protein (m6A demethylase)
+EWSR1,human,EWS RNA-binding protein 1
+FUS,human,Fused in sarcoma RNA-binding protein
+TAF15,human,TATA-box binding protein associated factor 15
+TARDBP,human,TAR DNA-binding protein 43 (TDP-43)
+MATR3,human,Matrin 3
+SFPQ,human,Splicing factor proline and glutamine rich
+NONO,human,Non-POU domain-containing octamer-binding protein
+ESRP1,human,Epithelial splicing regulatory protein 1
+ESRP2,human,Epithelial splicing regulatory protein 2
+NOVA1,human,NOVA alternative splicing regulator 1
+NOVA2,human,NOVA alternative splicing regulator 2
+SRRM4,human,Serine/arginine repetitive matrix protein 4 (nSR100)
+U2AF1,human,U2 small nuclear RNA auxiliary factor 1
+U2AF2,human,U2 small nuclear RNA auxiliary factor 2
+SF3B1,human,Splicing factor 3b subunit 1
+PRPF8,human,Pre-mRNA processing factor 8
+SNRNP200,human,Small nuclear ribonucleoprotein U5 subunit 200
+DDX3X,human,DEAD-box helicase 3 X-linked
+DDX5,human,DEAD-box helicase 5
+DDX6,human,DEAD-box helicase 6
+DDX17,human,DEAD-box helicase 17
+DDX39B,human,DEAD-box helicase 39B
+DHX9,human,DExH-box helicase 9
+EIF4A1,human,Eukaryotic translation initiation factor 4A1
+EIF4E,human,Eukaryotic translation initiation factor 4E
+EIF4G1,human,Eukaryotic translation initiation factor 4G1
+LARP1,human,La ribonucleoprotein 1 translational regulator
+LARP4,human,La ribonucleoprotein 4
+LARP6,human,La ribonucleoprotein 6
+LARP7,human,La ribonucleoprotein 7
+NCL,human,Nucleolin
+NPM1,human,Nucleophosmin 1
+YBX1,human,Y-box binding protein 1
+YBX3,human,Y-box binding protein 3
+CCAR2,human,Cell cycle and apoptosis regulator 2
+RC3H1,human,Ring finger and CCCH-type domains 1 (Roquin-1)
+RC3H2,human,Ring finger and CCCH-type domains 2 (Roquin-2)
+ZC3H12A,human,Zinc finger CCCH-type containing 12A (Regnase-1)
+ZC3H12D,human,Zinc finger CCCH-type containing 12D
+ZC3H14,human,Zinc finger CCCH-type containing 14
+CNBP,human,CCHC-type zinc finger nucleic acid binding protein
+PPIG,human,Peptidylprolyl isomerase G
+AUH,human,AU RNA-binding methylglutaconyl-CoA hydratase
+SYNCRIP,human,Synaptotagmin binding cytoplasmic RNA interacting protein
+TRNAU1AP,human,tRNA selenocysteine 1 associated protein 1
+TNRC6A,human,Trinucleotide repeat-containing gene 6A (GW182)
+TNRC6B,human,Trinucleotide repeat-containing gene 6B
+TNRC6C,human,Trinucleotide repeat-containing gene 6C
+NXF1,human,Nuclear RNA export factor 1
+THOC5,human,THO complex subunit 5
+SMNDC1,human,Survival motor neuron domain-containing 1
+SNRPA,human,Small nuclear ribonucleoprotein polypeptide A
+RBM22,human,RNA-binding motif protein 22
+CIRBP,human,Cold-inducible RNA-binding protein
+HNRNPA0,human,Heterogeneous nuclear ribonucleoprotein A0
+G3BP1,human,G3BP stress granule assembly factor 1
+G3BP2,human,G3BP stress granule assembly factor 2
+TARBP2,human,TARBP2 subunit of RISC loading complex
+PRKRA,human,Protein activator of interferon-induced protein kinase EIF2AK2
+Elavl1,mouse,AU-rich element RNA-binding protein 1 (HuR)
+Elavl2,mouse,ELAV-like protein 2 (HuB)
+Elavl3,mouse,ELAV-like protein 3 (HuC)
+Elavl4,mouse,ELAV-like protein 4 (HuD)
+Hnrnpa1,mouse,Heterogeneous nuclear ribonucleoprotein A1
+Hnrnpa2b1,mouse,Heterogeneous nuclear ribonucleoprotein A2/B1
+Hnrnpc,mouse,Heterogeneous nuclear ribonucleoprotein C
+Hnrnpd,mouse,Heterogeneous nuclear ribonucleoprotein D (AUF1)
+Rbfox1,mouse,RNA binding fox-1 homolog 1
+Rbfox2,mouse,RNA binding fox-1 homolog 2
+Rbfox3,mouse,RNA binding fox-1 homolog 3 (NeuN)
+Mbnl1,mouse,Muscleblind-like protein 1
+Mbnl2,mouse,Muscleblind-like protein 2
+Celf1,mouse,CUGBP Elav-like family member 1
+Celf2,mouse,CUGBP Elav-like family member 2
+Qki,mouse,Quaking homolog KH domain RNA binding
+Ptbp1,mouse,Polypyrimidine tract-binding protein 1
+Ptbp2,mouse,Polypyrimidine tract-binding protein 2
+Igf2bp1,mouse,Insulin-like growth factor 2 mRNA-binding protein 1
+Igf2bp2,mouse,Insulin-like growth factor 2 mRNA-binding protein 2
+Igf2bp3,mouse,Insulin-like growth factor 2 mRNA-binding protein 3
+Fmr1,mouse,Fragile X mental retardation protein 1
+Msi1,mouse,Musashi RNA-binding protein 1
+Msi2,mouse,Musashi RNA-binding protein 2
+Lin28a,mouse,Lin-28 homolog A
+Lin28b,mouse,Lin-28 homolog B
+Zfp36,mouse,Zinc finger protein 36 (Tristetraprolin TTP)
+Zfp36l1,mouse,Zinc finger protein 36 C3H type-like 1
+Zfp36l2,mouse,Zinc finger protein 36 C3H type-like 2
+Tia1,mouse,T-cell-restricted intracellular antigen-1
+Tial1,mouse,TIA1 cytotoxic granule-associated RNA-binding protein-like 1
+Cpeb1,mouse,Cytoplasmic polyadenylation element-binding protein 1
+Cpeb4,mouse,Cytoplasmic polyadenylation element-binding protein 4
+Pum1,mouse,Pumilio RNA-binding family member 1
+Pum2,mouse,Pumilio RNA-binding family member 2
+Nova1,mouse,NOVA alternative splicing regulator 1
+Nova2,mouse,NOVA alternative splicing regulator 2
+Esrp1,mouse,Epithelial splicing regulatory protein 1
+Esrp2,mouse,Epithelial splicing regulatory protein 2
+Khdrbs1,mouse,KH domain-containing RNA-binding signal transduction-associated protein 1 (Sam68)
+Srsf1,mouse,Serine/arginine-rich splicing factor 1
+Srsf3,mouse,Serine/arginine-rich splicing factor 3
+Tra2b,mouse,Transformer-2 protein homolog beta
+Ago2,mouse,Argonaute RISC catalytic component 2
+Mettl3,mouse,Methyltransferase 3 N6-adenosine-methyltransferase
+Mettl14,mouse,Methyltransferase 14 N6-adenosine-methyltransferase
+Ythdf2,mouse,YTH N6-methyladenosine RNA-binding protein 2
+Alkbh5,mouse,AlkB homolog 5 RNA demethylase
+Fto,mouse,Fat mass and obesity-associated protein (m6A demethylase)
+Tardbp,mouse,TAR DNA-binding protein 43 (TDP-43)
+Fus,mouse,Fused in sarcoma RNA-binding protein
+Matr3,mouse,Matrin 3
+Ybx1,mouse,Y-box binding protein 1
+Ddx6,mouse,DEAD-box helicase 6
+Stau1,mouse,Staufen double-stranded RNA-binding protein 1
+Stau2,mouse,Staufen double-stranded RNA-binding protein 2
+Upf1,mouse,Up-frameshift suppressor 1 (Rent1)
+Cnot1,mouse,CCR4-NOT transcription complex subunit 1
+Xrn1,mouse,5'-3' exoribonuclease 1
+Dis3l2,mouse,DIS3-like exonuclease 2
+Cirbp,mouse,Cold-inducible RNA-binding protein
+Rbm3,mouse,RNA-binding motif protein 3
