@@ -61,6 +61,21 @@ AU-rich element (ARE) genes and nonsense-mediated decay (NMD) targets should hav
 
 ARE enrichment is significant in sci-fate (human cell line where ARE-containing cytokine/signaling genes are expressed) but not in developmental datasets. NMD enrichment is significant in dentate gyrus.
 
+### Sequence-Feature Validation (3' UTR Length and AU Content)
+
+As a complementary, genome-wide validation, we correlated per-gene gamma estimates with 3' UTR sequence features from Ensembl (release 113). Longer 3' UTRs contain more regulatory elements and should have higher degradation rates; higher AU content indicates ARE-mediated decay.
+
+| Dataset | Feature | Spearman r | p-value | n genes |
+|---------|---------|-----------|---------|---------|
+| Pancreas | 3' UTR length | **0.208** | 7.2e-85 | 8,624 |
+| Pancreas | AU content | **0.098** | 9.3e-20 | 8,624 |
+| Dentate Gyrus | 3' UTR length | **0.133** | 2.7e-17 | 4,010 |
+| Dentate Gyrus | AU content | **0.063** | 6.6e-05 | 4,010 |
+| sci-fate | 3' UTR length | **0.343** | 5.0e-203 | 7,398 |
+| sci-fate | AU content | **0.300** | 8.1e-154 | 7,398 |
+
+All correlations are positive and highly significant. Quartile analysis confirms the trend: genes in the longest UTR quartile have substantially higher gamma than the shortest (Mann-Whitney p < 1e-15 in all datasets). The sci-fate dataset again shows the strongest effects, consistent with its higher overall data quality.
+
 ### Subsampling Robustness
 
 Gamma estimates are highly robust to cell subsampling. Spearman correlation with full-data estimates:
@@ -270,6 +285,18 @@ The bias is partly explained by a technical confound: RBPs with higher expressio
 
 Importantly, known biology is recovered despite the bias: Elavl4 (neuronal stabilizer) shows mean negative correlation with target gamma (stabilizing), consistent with its known role. The corrected network should be used for biological interpretation.
 
+### eCLIP Validation
+
+We validated scPTR-predicted RBP-target edges against ENCODE eCLIP binding data (Van Nostrand et al. 2020). For 9 RBPs with available eCLIP data (ELAVL1, FUS, HNRNPA1, HNRNPC, HNRNPU, MATR3, MBNL1→MBNL2, RBFOX2, TRA2A→TRA2B), we tested whether predicted targets overlap with experimentally confirmed binding targets more than expected by chance (Fisher's exact test).
+
+| Dataset | RBPs tested | Significant (p<0.05) | Mean enrichment |
+|---------|------------|---------------------|-----------------|
+| Pancreas | 9 | 2 (FUS, HNRNPC) | 1.72x |
+| Dentate Gyrus | 7 | 0 (HNRNPA1 borderline p=0.053) | 1.10x |
+| sci-fate | 9 | 0 | 0.73x |
+
+The modest overlap is expected: ENCODE eCLIP was performed in K562 (leukemia) and HepG2 (liver cancer) cell lines, which have very different RBP binding landscapes from pancreatic endocrine, neuronal, or A549 cells. RBP binding is highly cell-type-specific. The two significant hits (FUS and HNRNPC in pancreas, both ubiquitous RBPs) support the validity of the approach where cell-type context is compatible. Comprehensive cell-type-matched CLIP data would be needed for stronger validation.
+
 ---
 
 ## Pipeline Statistics
@@ -299,6 +326,8 @@ Note: "Gamma-informative" = genes with >= 10% of cells having nonzero gamma. The
 | `analyses/run_summary.py` | Cross-dataset validation summary |
 | `analyses/run_precedence.py` | Temporal precedence analysis |
 | `analyses/run_tier1_fixes.py` | Reviewer concern analyses (GSEA, ablation, bias, TF discrepancy) |
+| `analyses/run_tier2_validation.py` | Sequence-feature validation (UTR length/AU) and eCLIP validation |
+| `analyses/download_eclip.py` | ENCODE eCLIP data acquisition for RBP validation |
 
 All figures saved to `output/` subdirectories. 53 tests passing.
 
