@@ -1,6 +1,6 @@
 # scPTR Results
 
-Comprehensive results from the scPTR (Single-Cell Post-Transcriptional Regulatory Decomposition) framework across three datasets.
+Comprehensive results from the scPTR (Single-Cell Post-Transcriptional Regulatory Decomposition) framework across four datasets.
 
 ## Datasets
 
@@ -9,6 +9,7 @@ Comprehensive results from the scPTR (Single-Cell Post-Transcriptional Regulator
 | Pancreas | Mouse | 10X Chromium | 3,696 | 11,906 | 11 | Endocrinogenesis (day 15.5) |
 | Dentate Gyrus | Mouse | 10X Chromium | 2,930 | 5,325 | 12 | Hippocampal neurogenesis |
 | sci-fate A549 | Human | sci (combinatorial indexing) | 7,404 | 7,970 | 14 | Dexamethasone response (0-10h) |
+| Neuroblastoma | Human | 10X Chromium (Kallisto) | 9,398 | 9,669 | - | Adrenal neuroblastoma (GSE137804) |
 
 ---
 
@@ -297,13 +298,45 @@ We validated scPTR-predicted RBP-target edges against ENCODE eCLIP binding data 
 
 The modest overlap is expected: ENCODE eCLIP was performed in K562 (leukemia) and HepG2 (liver cancer) cell lines, which have very different RBP binding landscapes from pancreatic endocrine, neuronal, or A549 cells. RBP binding is highly cell-type-specific. The two significant hits (FUS and HNRNPC in pancreas, both ubiquitous RBPs) support the validity of the approach where cell-type context is compatible. Comprehensive cell-type-matched CLIP data would be needed for stronger validation.
 
+### DepMap/CRISPR Validation
+
+scPTR-predicted RBP hubs (top 20 by target count) are validated against DepMap CRISPR gene effect scores (25Q3 release, 1,186 cell lines). More negative scores indicate greater essentiality.
+
+| Dataset | Hub RBP mean dep | Non-hub RBP mean dep | Mann-Whitney p | Significant? |
+|---------|------------------|---------------------|----------------|-------------|
+| Pancreas | **-0.825** | -0.469 | **0.006** | Yes |
+| Neuroblastoma | **-0.863** | -0.464 | **0.046** | Yes |
+| Dentate Gyrus | -0.654 | -0.490 | 0.127 | No (trend) |
+
+Hub RBPs are significantly more essential than non-hub RBPs in pancreas and neuroblastoma, validating that scPTR identifies functionally important regulators. In pancreas, the number of predicted targets per RBP negatively correlates with CRISPR dependency (Spearman r=-0.25, p=0.003): RBPs with more predicted targets are more essential.
+
+---
+
+## Aim 5: Disease Application (Neuroblastoma)
+
+scPTR was applied to human neuroblastoma data (Dong et al. 2020, GSE137804) — 9,398 tumor cells from patient T71 with spliced/unspliced counts from Kallisto.
+
+| Metric | Value |
+|--------|-------|
+| Cells | 9,398 |
+| Genes (after filtering) | 9,669 |
+| Gamma-informative genes | 8,034 (83.1%) |
+| Half-life corr (human, Schofield) | r=-0.050, p=3.5e-5 |
+| Half-life corr (mouse, Herzog) | r=-0.060, p=1.7e-6 |
+| Gamma sub-clusters | 2 (silhouette=0.188) |
+| Network edges | 9,112 (9,008 destabilizing) |
+
+Top RBP hubs in neuroblastoma: YBX1 (190 targets), PCBP2 (187), PABPC1 (187), SRSF9 (180), DDX5 (179), RBFOX2 (179), ELAVL4 (176), HNRNPA2B1 (173), HNRNPC (170), NONO (169).
+
+The half-life correlations are weaker than developmental datasets (r≈-0.05 vs r≈-0.35), likely because the tumor is relatively homogeneous (single cell type) and steady-state assumptions are weaker in actively proliferating cells. The gamma sub-clusters are visible in expression space (expression silhouette 0.295 > gamma silhouette 0.188), suggesting that in this tumor, transcriptional and post-transcriptional states are concordant rather than independent. The RBP network identifies known neuroblastoma-relevant regulators (YBX1, DDX5, ELAVL4).
+
 ---
 
 ## Pipeline Statistics
 
-| Parameter | Pancreas | Dentate Gyrus | sci-fate |
-|-----------|----------|---------------|---------|
-| Beta median | 1.093 | 0.882 | 0.614 |
+| Parameter | Pancreas | Dentate Gyrus | sci-fate | Neuroblastoma |
+|-----------|----------|---------------|---------|---------------|
+| Beta median | 1.093 | 0.882 | 0.614 | - |
 | Gamma median of medians (all) | 0.000 | 0.000 | 0.174 |
 | Gamma median (informative only) | 0.006 | 0.000 | 0.174 |
 | Gamma-informative genes | 9,330 (78%) | 4,331 (81%) | ~7,900 (99%) |
@@ -328,6 +361,7 @@ Note: "Gamma-informative" = genes with >= 10% of cells having nonzero gamma. The
 | `analyses/run_tier1_fixes.py` | Reviewer concern analyses (GSEA, ablation, bias, TF discrepancy) |
 | `analyses/run_tier2_validation.py` | Sequence-feature validation (UTR length/AU) and eCLIP validation |
 | `analyses/download_eclip.py` | ENCODE eCLIP data acquisition for RBP validation |
+| `analyses/run_tier3.py` | Disease dataset (neuroblastoma) and DepMap CRISPR validation |
 
 All figures saved to `output/` subdirectories. 53 tests passing.
 
@@ -339,3 +373,6 @@ All figures saved to `output/` subdirectories. 53 tests passing.
 - Herzog, V.A. et al. (2017). Thiol-linked alkylation of RNA to assess expression dynamics. *Nature Methods*, 14, 1198-1204.
 - Schofield, J.A. et al. (2018). TimeLapse-seq: adding a temporal dimension to RNA sequencing through nucleoside recoding. *Nature Methods*, 15, 221-225.
 - Bergen, V. et al. (2020). Generalizing RNA velocity to transient cell states through dynamical modeling. *Nature Biotechnology*, 38, 1408-1414.
+- Dong, R. et al. (2020). Single-Cell Characterization of Malignant Phenotypes and Developmental Trajectories of Adrenal Neuroblastoma. *Cancer Cell*, 38, 716-733.
+- Van Nostrand, E.L. et al. (2020). A large-scale binding and functional map of human RNA-binding proteins. *Nature*, 583, 711-719.
+- Dempster, J.M. et al. (2021). Chronos: a cell population dynamics model of CRISPR experiments that improves inference of gene fitness effects. *Genome Biology*, 22, 343.
