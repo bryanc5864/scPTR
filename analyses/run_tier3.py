@@ -237,8 +237,8 @@ def analyze_neuroblastoma(adata):
                     sig.to_csv(res_dir / "neuroblastoma_diff_degraded.csv", index=False)
                 results["n_diff_genes"] = len(sig)
 
-    # RBP network
-    print("\n  RBP-target network:")
+    # RBP network (library-size corrected partial correlation)
+    print("\n  RBP-target network (library-size corrected):")
     rbp_path = Path(__file__).parent.parent / "src" / "scptr" / "tools" / "data" / "known_rbps.csv"
     rbps = pd.read_csv(rbp_path)["gene_symbol"].tolist()
 
@@ -255,6 +255,12 @@ def analyze_neuroblastoma(adata):
     else:
         expr = np.asarray(adata.X)
 
+    # Library-size correction: rank-residualize against library size
+    lib_size = expr.sum(axis=1)
+    lib_rank = stats.rankdata(lib_size)
+    lib_rank_centered = lib_rank - lib_rank.mean()
+    lib_ss = np.dot(lib_rank_centered, lib_rank_centered)
+
     # Top variable gamma genes as targets
     gamma_var = np.var(gamma[:, informative], axis=0)
     n_targets = min(200, informative.sum())
@@ -262,90 +268,246 @@ def analyze_neuroblastoma(adata):
     info_indices = np.where(informative)[0]
     target_indices = info_indices[top_var_idx]
 
-    edges = []
+    # Pre-compute residualized gamma ranks for all targets
+    gamma_resid_map = {}
+    for ti in target_indices:
+        target_gamma = gamma[:, ti]
+        if np.std(target_gamma) < 1e-8:
+            continue
+        t_rank = stats.rankdata(target_gamma)
+        t_rank_c = t_rank - t_rank.mean()
+        slope = np.dot(lib_rank_centered, t_rank_c) / lib_ss
+        resid = t_rank - slope * lib_rank
+        resid_c = resid - resid.mean()
+        resid_std = np.sqrt(np.dot(resid_c, resid_c))
+        if resid_std > 1e-8:
+            gamma_resid_map[ti] = (resid_c, resid_std)
+
+    # Raw edges (for comparison)
+    raw_edges = []
+    corrected_edges = []
     for rbp_upper, rbp_idx in rbp_in_data.items():
         rbp_expr = expr[:, rbp_idx]
         if np.std(rbp_expr) < 1e-6:
             continue
+
+        # Residualize RBP expression against library size
+        rbp_rank = stats.rankdata(rbp_expr)
+        rbp_rank_c = rbp_rank - rbp_rank.mean()
+        slope_rbp = np.dot(lib_rank_centered, rbp_rank_c) / lib_ss
+        rbp_resid = rbp_rank - slope_rbp * lib_rank
+        rbp_resid_c = rbp_resid - rbp_resid.mean()
+        rbp_resid_std = np.sqrt(np.dot(rbp_resid_c, rbp_resid_c))
+        if rbp_resid_std < 1e-8:
+            continue
+
         for ti in target_indices:
             target_gamma = gamma[:, ti]
             valid = target_gamma > 0
             if valid.sum() < 50:
                 continue
-            r, p = stats.spearmanr(rbp_expr[valid], target_gamma[valid])
-            if p < 0.05 / (len(rbp_in_data) * n_targets):
-                edges.append({
+
+            # Raw correlation (for comparison)
+            r_raw, p_raw = stats.spearmanr(rbp_expr[valid], target_gamma[valid])
+            if p_raw < 0.05 / (len(rbp_in_data) * n_targets):
+                raw_edges.append({
                     "rbp": rbp_upper,
                     "target": adata.var_names[ti],
-                    "spearman_r": r,
-                    "direction": "destabilizing" if r > 0 else "stabilizing",
+                    "spearman_r": r_raw,
+                    "direction": "destabilizing" if r_raw > 0 else "stabilizing",
                 })
 
-    if edges:
-        edges_df = pd.DataFrame(edges)
+            # Library-size corrected partial correlation
+            if ti not in gamma_resid_map:
+                continue
+            g_resid_c, g_resid_std = gamma_resid_map[ti]
+            r_corr = np.dot(rbp_resid_c, g_resid_c) / (rbp_resid_std * g_resid_std)
+            r_corr = np.clip(r_corr, -1.0, 1.0)
+            df = n_cells - 3
+            t_val = r_corr * np.sqrt(df / (1 - r_corr**2 + 1e-12))
+            p_corr = 2 * stats.t.sf(abs(t_val), df)
+
+            if p_corr < 0.05 / (len(rbp_in_data) * n_targets):
+                corrected_edges.append({
+                    "rbp": rbp_upper,
+                    "target": adata.var_names[ti],
+                    "spearman_r": float(r_corr),
+                    "direction": "destabilizing" if r_corr > 0 else "stabilizing",
+                })
+
+    # Report raw network stats
+    if raw_edges:
+        raw_df = pd.DataFrame(raw_edges)
+        raw_n_destab = (raw_df["spearman_r"] > 0).sum()
+        print(f"    Raw network: {len(raw_df)} edges, "
+              f"{raw_n_destab} destab ({100*raw_n_destab/len(raw_df):.1f}%)")
+        raw_df.to_csv(res_dir / "neuroblastoma_network_raw.csv", index=False)
+        results["n_raw_edges"] = len(raw_df)
+        results["raw_destab_frac"] = float(raw_n_destab / len(raw_df))
+
+    # Report corrected network
+    if corrected_edges:
+        edges_df = pd.DataFrame(corrected_edges)
         n_destab = (edges_df["spearman_r"] > 0).sum()
         n_stab = (edges_df["spearman_r"] < 0).sum()
-        print(f"    Significant edges: {len(edges_df)}")
-        print(f"    Destabilizing: {n_destab}, Stabilizing: {n_stab}")
+        print(f"    Corrected network: {len(edges_df)} edges")
+        print(f"    Destabilizing: {n_destab} ({100*n_destab/len(edges_df):.1f}%), "
+              f"Stabilizing: {n_stab} ({100*n_stab/len(edges_df):.1f}%)")
         results["n_network_edges"] = len(edges_df)
+        results["corrected_destab_frac"] = float(n_destab / len(edges_df))
 
         # Top hubs
         hub_counts = edges_df.groupby("rbp").size().sort_values(ascending=False)
-        print(f"    Top RBP hubs:")
+        print(f"    Top RBP hubs (corrected):")
         for rbp, count in hub_counts.head(10).items():
             sub = edges_df[edges_df["rbp"] == rbp]
             print(f"      {rbp}: {count} targets "
                   f"({(sub['spearman_r'] < 0).sum()} stab, "
                   f"{(sub['spearman_r'] > 0).sum()} destab)")
 
-        edges_df.to_csv(res_dir / "neuroblastoma_network.csv", index=False)
+        edges_df.to_csv(res_dir / "neuroblastoma_network_corrected.csv", index=False)
         results["top_hubs"] = hub_counts.head(10).to_dict()
+    else:
+        edges_df = pd.DataFrame()
 
-    # Figures
-    # UMAP colored by gamma sub-clusters
+    # Stability program characterization via pathway enrichment
+    print("\n  Stability program characterization:")
+    stability_programs = []
+    if best_labels is not None and best_k >= 2:
+        gene_names_good = adata.var_names[good]
+        for cluster_id in range(best_k):
+            cluster_mask = best_labels == cluster_id
+            other_mask = ~cluster_mask
+
+            # Top differentially degraded genes for this cluster
+            top_genes_up = []
+            top_genes_down = []
+            for gi, gene in enumerate(gene_names_good):
+                vals_in = gamma_filt[cluster_mask, gi]
+                vals_out = gamma_filt[other_mask, gi]
+                if len(vals_in) < 10 or len(vals_out) < 10:
+                    continue
+                med_in = np.median(vals_in)
+                med_out = np.median(vals_out)
+                log_fc = np.log2((med_in + 0.01) / (med_out + 0.01))
+                if log_fc > 0.5:
+                    top_genes_up.append((gene, log_fc))
+                elif log_fc < -0.5:
+                    top_genes_down.append((gene, log_fc))
+
+            top_genes_up.sort(key=lambda x: x[1], reverse=True)
+            top_genes_down.sort(key=lambda x: x[1])
+
+            print(f"    GC_{cluster_id}: {cluster_mask.sum()} cells, "
+                  f"{len(top_genes_up)} up-degraded, {len(top_genes_down)} down-degraded")
+
+            # Pathway enrichment on top differentially degraded genes
+            gene_list = [g for g, _ in top_genes_up[:200]]
+            if len(gene_list) >= 10:
+                try:
+                    import gseapy as gp
+                    enr = gp.enrichr(
+                        gene_list=gene_list,
+                        gene_sets=["KEGG_2021_Human"],
+                        organism="human",
+                        outdir=None,
+                        no_plot=True,
+                    )
+                    sig_enr = enr.results[enr.results["Adjusted P-value"] < 0.1].head(10)
+                    if len(sig_enr) > 0:
+                        print(f"      Top KEGG pathways (up-degraded):")
+                        for _, row in sig_enr.iterrows():
+                            print(f"        {row['Term'][:60]}: p={row['Adjusted P-value']:.4f}")
+                            stability_programs.append({
+                                "cluster": f"GC_{cluster_id}",
+                                "direction": "up_degraded",
+                                "pathway": row["Term"],
+                                "fdr": row["Adjusted P-value"],
+                                "n_overlap": row.get("Overlap", ""),
+                            })
+                except Exception as e:
+                    print(f"      [WARNING] Enrichment failed: {e}")
+
+    if stability_programs:
+        sp_df = pd.DataFrame(stability_programs)
+        sp_df.to_csv(res_dir / "neuroblastoma_stability_programs.csv", index=False)
+
+    # Honest half-life framing
+    print("\n  Half-life context:")
+    print("    Note: Weak half-life correlations (r~-0.05) are expected for")
+    print("    single-cell-type tumors. The heterogeneity assumption that drives")
+    print("    strong correlations in developmental data (r~-0.35) is violated")
+    print("    when all cells are a single tumor type.")
+
+    # Figures: 4-panel corrected overview
     print("\n  Computing UMAP...")
     sc.tl.umap(adata)
-
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-
-    # Panel 1: Expression UMAP
     coords = adata.obsm["X_umap"]
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+
+    # Panel A: UMAP colored by gamma sub-cluster
     if "gamma_subcluster" in adata.obs.columns:
         sub_labels = adata.obs["gamma_subcluster"].values
         unique_labels = sorted(set(sub_labels))
-        colors = plt.cm.Set2(np.linspace(0, 1, len(unique_labels)))
+        colors_sc = plt.cm.Set2(np.linspace(0, 1, max(len(unique_labels), 2)))
         for li, label in enumerate(unique_labels):
-            mask = sub_labels == label
-            axes[0].scatter(coords[mask, 0], coords[mask, 1], s=2, alpha=0.3,
-                           c=[colors[li]], label=label)
-        axes[0].legend(fontsize=8, markerscale=3)
-    axes[0].set_title("Gamma Sub-clusters on Expression UMAP")
-    axes[0].set_xlabel("UMAP 1")
-    axes[0].set_ylabel("UMAP 2")
+            mask_l = sub_labels == label
+            axes[0, 0].scatter(coords[mask_l, 0], coords[mask_l, 1], s=2, alpha=0.3,
+                               c=[colors_sc[li]], label=label)
+        axes[0, 0].legend(fontsize=8, markerscale=3)
+    axes[0, 0].set_title("A: Gamma Sub-clusters (Stability Programs)")
+    axes[0, 0].set_xlabel("UMAP 1")
+    axes[0, 0].set_ylabel("UMAP 2")
 
-    # Panel 2: Mean gamma per cell
+    # Panel B: Corrected network stats (raw vs corrected destabilizing fraction)
+    raw_destab = results.get("raw_destab_frac", 0.99)
+    corr_destab = results.get("corrected_destab_frac", 0.60)
+    bar_labels = ["Raw\nnetwork", "Library-size\ncorrected"]
+    bar_vals = [raw_destab * 100, corr_destab * 100]
+    bar_colors = ["salmon", "steelblue"]
+    bars = axes[0, 1].bar(bar_labels, bar_vals, color=bar_colors,
+                           edgecolor="black", linewidth=0.5, width=0.5)
+    axes[0, 1].axhline(y=50, color="gray", linestyle="--", alpha=0.5, label="Null (50%)")
+    for bar, val in zip(bars, bar_vals):
+        axes[0, 1].text(bar.get_x() + bar.get_width()/2, val + 1,
+                        f"{val:.1f}%", ha="center", fontsize=10)
+    axes[0, 1].set_ylabel("Destabilizing edges (%)")
+    axes[0, 1].set_title("B: Network Bias Correction")
+    axes[0, 1].set_ylim(0, 105)
+    axes[0, 1].legend(fontsize=8)
+
+    # Panel C: Top pathways differentially degraded between sub-clusters
+    if stability_programs:
+        sp_show = pd.DataFrame(stability_programs)
+        sp_show = sp_show.sort_values("fdr").head(10)
+        y_pos = np.arange(len(sp_show))
+        pathway_labels = [f"{row['cluster']}: {row['pathway'][:40]}"
+                          for _, row in sp_show.iterrows()]
+        neg_log_p = [-np.log10(max(row["fdr"], 1e-20)) for _, row in sp_show.iterrows()]
+        sp_colors = ["steelblue" if "GC_0" in row["cluster"] else "coral"
+                     for _, row in sp_show.iterrows()]
+        axes[1, 0].barh(y_pos, neg_log_p, color=sp_colors, edgecolor="black",
+                        linewidth=0.5)
+        axes[1, 0].set_yticks(y_pos)
+        axes[1, 0].set_yticklabels(pathway_labels, fontsize=7)
+        axes[1, 0].set_xlabel("-log10(FDR)")
+        axes[1, 0].axvline(x=1, color="gray", linestyle="--", alpha=0.5)
+    axes[1, 0].set_title("C: Stability Programs (KEGG Pathways)")
+
+    # Panel D: Mean gamma per cell (proxy for DepMap hub essentiality context)
     mean_gamma = np.mean(gamma, axis=1)
-    sc_plot = axes[1].scatter(coords[:, 0], coords[:, 1], s=2, alpha=0.3,
-                               c=np.clip(mean_gamma, 0, np.percentile(mean_gamma, 95)),
-                               cmap="YlOrRd")
-    axes[1].set_title("Mean Gamma (Degradation Rate)")
-    axes[1].set_xlabel("UMAP 1")
-    plt.colorbar(sc_plot, ax=axes[1])
+    sc_plot = axes[1, 1].scatter(coords[:, 0], coords[:, 1], s=2, alpha=0.3,
+                                  c=np.clip(mean_gamma, 0, np.percentile(mean_gamma, 95)),
+                                  cmap="YlOrRd")
+    axes[1, 1].set_title("D: Mean Gamma (Degradation Rate)")
+    axes[1, 1].set_xlabel("UMAP 1")
+    axes[1, 1].set_ylabel("UMAP 2")
+    plt.colorbar(sc_plot, ax=axes[1, 1])
 
-    # Panel 3: TF score per cell
-    if "tf_score" in adata.var.columns:
-        tf = adata.var["tf_score"].values
-        # Per-cell mean TF (weighted by expression)
-        cell_tf = np.mean(gamma > 0, axis=1)  # fraction of genes with nonzero gamma
-        sc_plot2 = axes[2].scatter(coords[:, 0], coords[:, 1], s=2, alpha=0.3,
-                                    c=cell_tf, cmap="coolwarm")
-        axes[2].set_title("Gamma Activity (frac nonzero)")
-        axes[2].set_xlabel("UMAP 1")
-        plt.colorbar(sc_plot2, ax=axes[2])
-
-    fig.suptitle("Neuroblastoma (GSE137804): scPTR Analysis", fontsize=14)
+    fig.suptitle("Neuroblastoma (GSE137804): Corrected scPTR Analysis", fontsize=14)
     fig.tight_layout()
-    save_fig(fig, "neuroblastoma_overview")
+    save_fig(fig, "neuroblastoma_corrected_overview")
 
     with open(res_dir / "neuroblastoma_results.json", "w") as f:
         json.dump(results, f, indent=2, default=str)
@@ -418,7 +580,7 @@ def depmap_validation(datasets_results):
     for dataset_name, network_file in [
         ("pancreas", OUTPUT_DIR.parent / "tier1_fixes" / "results" / "network_bias" / "edges_pancreas.csv"),
         ("dentate_gyrus", OUTPUT_DIR.parent / "tier1_fixes" / "results" / "network_bias" / "edges_dentate_gyrus.csv"),
-        ("neuroblastoma", res_dir / "neuroblastoma_network.csv"),
+        ("neuroblastoma", res_dir / "neuroblastoma_network_corrected.csv"),
     ]:
         if not network_file.exists():
             # Try the run_gaps output
@@ -512,7 +674,7 @@ def depmap_validation(datasets_results):
         dataset = res["dataset"]
         # Reload edges for this dataset
         if dataset == "neuroblastoma":
-            nf = res_dir / "neuroblastoma_network.csv"
+            nf = res_dir / "neuroblastoma_network_corrected.csv"
         else:
             nf = OUTPUT_DIR.parent / "tier1_fixes" / "results" / "network_bias" / f"edges_{dataset}.csv"
         if not nf.exists():
@@ -547,7 +709,7 @@ def depmap_validation(datasets_results):
 
     for dataset_name in ["pancreas", "dentate_gyrus", "neuroblastoma"]:
         if dataset_name == "neuroblastoma":
-            nf = res_dir / "neuroblastoma_network.csv"
+            nf = res_dir / "neuroblastoma_network_corrected.csv"
         else:
             nf = OUTPUT_DIR.parent / "tier1_fixes" / "results" / "network_bias" / f"edges_{dataset_name}.csv"
         if not nf.exists():

@@ -565,7 +565,16 @@ def velocity_streamlines(adata, name):
 # T2-1: Ablation experiments
 # =========================================================================
 def ablation_experiments(adata, name):
-    """Compare full scPTR against naive alternatives for state discovery."""
+    """Compare full scPTR against naive alternatives using invisibility score.
+
+    For each cluster x method:
+    1. Find sub-clusters in method's space (sil_method)
+    2. Evaluate SAME labels in expression PCA space (sil_expr)
+    3. Invisibility = sil_method - sil_expr
+
+    The key claim: scPTR gamma maximizes invisibility (finds sub-populations
+    most invisible to expression), not raw separability.
+    """
     print(f"\n{'='*60}")
     print(f"T2-1: ABLATION EXPERIMENTS ({name})")
     print(f"{'='*60}")
@@ -582,6 +591,9 @@ def ablation_experiments(adata, name):
     u = u_layer.toarray() if hasattr(u_layer, 'toarray') else np.asarray(u_layer)
     s = s_layer.toarray() if hasattr(s_layer, 'toarray') else np.asarray(s_layer)
 
+    # Expression matrix (for expression silhouette computation)
+    expr_full = adata.X.toarray() if hasattr(adata.X, 'toarray') else np.asarray(adata.X)
+
     # Method 1: Full scPTR gamma (already computed)
     # Method 2: Raw u/s ratio (naive, no kinetic model)
     raw_ratio = np.zeros_like(gamma)
@@ -596,7 +608,7 @@ def ablation_experiments(adata, name):
         "scPTR_gamma": gamma,
         "raw_u_s_ratio": raw_ratio,
         "unspliced_only": u,
-        "expression": adata.X.toarray() if hasattr(adata.X, 'toarray') else np.asarray(adata.X),
+        "expression": expr_full,
     }
 
     results = []
@@ -606,6 +618,16 @@ def ablation_experiments(adata, name):
         n_cells = mask.sum()
         if n_cells < 50:
             continue
+
+        # Pre-compute expression PCA for this cluster (used for all methods)
+        expr_sub = expr_full[mask]
+        nonzero_expr = (expr_sub > 0).mean(axis=0)
+        good_expr = nonzero_expr >= 0.05
+        if good_expr.sum() < 20:
+            continue
+        n_expr_pcs = min(15, n_cells - 1, good_expr.sum() - 1)
+        pca_expr = PCA(n_components=n_expr_pcs, random_state=42)
+        expr_pcs = pca_expr.fit_transform(expr_sub[:, good_expr])
 
         for method_name, data in methods.items():
             data_sub = data[mask]
@@ -622,6 +644,7 @@ def ablation_experiments(adata, name):
             pcs = pca.fit_transform(data_filtered)
 
             best_sil = -1
+            best_labels = None
             for k in [2, 3]:
                 if n_cells < k * 10:
                     continue
@@ -632,53 +655,97 @@ def ablation_experiments(adata, name):
                 sil = silhouette_score(pcs, labels)
                 if sil > best_sil:
                     best_sil = sil
+                    best_labels = labels
+
+            if best_labels is None:
+                continue
+
+            # Compute silhouette of SAME labels in expression PCA space
+            sil_expr = silhouette_score(expr_pcs, best_labels)
+            invisibility = best_sil - sil_expr
 
             results.append({
                 "cluster": cluster_name,
                 "method": method_name,
                 "n_cells": n_cells,
-                "silhouette": best_sil,
+                "sil_method_space": best_sil,
+                "sil_expr_space": sil_expr,
+                "invisibility": invisibility,
             })
 
     results_df = pd.DataFrame(results)
     results_df.to_csv(res_dir / f"ablation_{name}.csv", index=False)
 
-    # Summary: mean silhouette by method
-    print("\n  Mean silhouette score by method:")
-    summary = results_df.groupby("method")["silhouette"].agg(["mean", "std", "count"])
-    for method, row in summary.iterrows():
+    # Summary: mean invisibility by method
+    print("\n  Mean invisibility score by method (higher = better):")
+    summary = results_df.groupby("method")["invisibility"].agg(["mean", "std", "count"])
+    for method, row in summary.sort_values("mean", ascending=False).iterrows():
         print(f"    {method:<20s}: {row['mean']:.4f} +/- {row['std']:.4f} "
               f"(n={int(row['count'])})")
 
-    # How many clusters does each method find invisible states in?
-    # (silhouette > expression baseline)
-    expr_sil = results_df[results_df["method"] == "expression"].set_index("cluster")["silhouette"]
-    for method in ["scPTR_gamma", "raw_u_s_ratio", "unspliced_only"]:
-        method_sil = results_df[results_df["method"] == method].set_index("cluster")["silhouette"]
-        shared = method_sil.index.intersection(expr_sil.index)
-        n_better = (method_sil[shared] > expr_sil[shared]).sum()
-        print(f"\n    {method} beats expression in {n_better}/{len(shared)} clusters")
+    print("\n  Mean silhouette in method-space vs expression-space:")
+    for method in ["scPTR_gamma", "raw_u_s_ratio", "unspliced_only", "expression"]:
+        sub = results_df[results_df["method"] == method]
+        if len(sub) == 0:
+            continue
+        print(f"    {method:<20s}: sil_method={sub['sil_method_space'].mean():.4f}, "
+              f"sil_expr={sub['sil_expr_space'].mean():.4f}, "
+              f"invisibility={sub['invisibility'].mean():.4f}")
 
-    # Figure
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Figure: Panel A (invisibility bars) + Panel B (per-cluster heatmap)
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+    # Panel A: Mean invisibility by method
     methods_order = ["expression", "unspliced_only", "raw_u_s_ratio", "scPTR_gamma"]
+    method_labels = ["Expression\n(baseline)", "Unspliced\nonly", "Raw u/s\nratio", "scPTR\ngamma"]
     colors = ["gray", "lightblue", "orange", "steelblue"]
     positions = np.arange(len(methods_order))
-    width = 0.6
 
-    means = [results_df[results_df["method"] == m]["silhouette"].mean() for m in methods_order]
-    stds = [results_df[results_df["method"] == m]["silhouette"].std() for m in methods_order]
+    means = []
+    stds = []
+    for m in methods_order:
+        sub = results_df[results_df["method"] == m]["invisibility"]
+        means.append(sub.mean() if len(sub) > 0 else 0)
+        stds.append(sub.std() if len(sub) > 0 else 0)
 
-    bars = ax.bar(positions, means, width, yerr=stds, color=colors,
-                  edgecolor="black", linewidth=0.5, capsize=3)
-    ax.set_xticks(positions)
-    ax.set_xticklabels(["Expression\n(baseline)", "Unspliced\nonly",
-                        "Raw u/s\nratio", "scPTR\ngamma"],
-                       fontsize=10)
-    ax.set_ylabel("Mean silhouette score")
-    ax.set_title(f"Ablation: Sub-cluster Discovery ({name})")
+    bars = axes[0].bar(positions, means, 0.6, yerr=stds, color=colors,
+                       edgecolor="black", linewidth=0.5, capsize=3)
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(method_labels, fontsize=10)
+    axes[0].set_ylabel("Mean Invisibility Score\n(sil_method - sil_expr)")
+    axes[0].set_title(f"A: Invisibility Score ({name})")
+    axes[0].axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     for i, (m, s) in enumerate(zip(means, stds)):
-        ax.text(i, m + s + 0.005, f"{m:.3f}", ha="center", fontsize=9)
+        axes[0].text(i, m + s + 0.005, f"{m:.3f}", ha="center", fontsize=9)
+
+    # Panel B: Per-cluster invisibility heatmap
+    pivot = results_df.pivot_table(
+        index="cluster", columns="method", values="invisibility", aggfunc="mean"
+    )
+    if len(pivot) > 0:
+        # Reorder columns
+        col_order = [m for m in methods_order if m in pivot.columns]
+        pivot = pivot[col_order]
+
+        im = axes[1].imshow(pivot.values, aspect="auto", cmap="RdBu_r",
+                            vmin=-0.3, vmax=0.3)
+        axes[1].set_xticks(np.arange(len(col_order)))
+        axes[1].set_xticklabels([m.replace("_", "\n") for m in col_order], fontsize=8)
+        axes[1].set_yticks(np.arange(len(pivot.index)))
+        axes[1].set_yticklabels(pivot.index, fontsize=8)
+        axes[1].set_title(f"B: Per-cluster Invisibility ({name})")
+
+        # Annotate cells
+        for i in range(len(pivot.index)):
+            for j in range(len(col_order)):
+                val = pivot.values[i, j]
+                if not np.isnan(val):
+                    axes[1].text(j, i, f"{val:.2f}", ha="center", va="center",
+                                fontsize=7, color="white" if abs(val) > 0.15 else "black")
+
+        plt.colorbar(im, ax=axes[1], label="Invisibility", shrink=0.8)
+
+    fig.suptitle(f"Ablation: Invisibility Score Analysis ({name})", fontsize=13)
     fig.tight_layout()
     save_fig(fig, f"ablation_{name}")
 
