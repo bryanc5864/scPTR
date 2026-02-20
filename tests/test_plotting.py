@@ -56,3 +56,11 @@ def test_pt_velocity_embedding(analyzed_adata):
     scptr.tl.pt_velocity(analyzed_adata)
     fig = scptr.pl.pt_velocity_embedding(analyzed_adata, show=False)
     assert fig is not None
+
+
+def test_pt_velocity_stream(analyzed_adata):
+    import scptr
+
+    scptr.tl.pt_velocity(analyzed_adata)
+    fig = scptr.pl.pt_velocity_stream(analyzed_adata, grid_size=20, show=False)
+    assert fig is not None
