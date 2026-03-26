@@ -26,6 +26,9 @@ dev = [
 datasets = [
     "pooch>=1.6",
 ]
+deep = [
+    "torch>=2.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

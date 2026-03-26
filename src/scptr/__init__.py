@@ -8,3 +8,8 @@ from . import plotting as pl
 from . import readwrite
 from . import datasets
 from . import benchmark
+
+try:
+    from . import deep
+except ImportError:
+    pass  # torch not installed; deep module unavailable
