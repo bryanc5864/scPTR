@@ -1,17 +1,16 @@
 \documentclass[10pt]{article}
-\usepackage[margin=0.65in,top=0.6in,bottom=0.6in]{geometry}
+\usepackage[margin=0.6in,top=0.55in,bottom=0.55in]{geometry}
 \usepackage{graphicx}
 \usepackage{amsmath,amssymb}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
 \usepackage[font=small,labelfont=bf]{caption}
-\usepackage{helvet}
-\renewcommand{\familydefault}{\sfdefault}
+\usepackage{mathptmx}  % Times New Roman for text and math
 
 % Compact sections
 \titleformat{\section}{\normalsize\bfseries}{\thesection}{0.5em}{}
-\titlespacing*{\section}{0pt}{6pt}{2pt}
-\setlength{\parskip}{2.5pt}
+\titlespacing*{\section}{0pt}{7pt}{3pt}
+\setlength{\parskip}{3pt}
 \setlength{\parindent}{0pt}
 \setlength{\abovecaptionskip}{4pt}
 \setlength{\belowcaptionskip}{2pt}
@@ -23,7 +22,7 @@
 
 \begin{center}
 {\Large\bfseries scPTR: Decomposing Post-Transcriptional Regulation\\[2pt] at Single-Cell Resolution}
-\vspace{4pt}
+\vspace{5pt}
 \end{center}
 
 \section*{Introduction}
@@ -45,95 +44,130 @@ axis---complementary to, and independent of, RNA velocity.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth,height=1.65in,keepaspectratio]{figures/fig1_method.pdf}
-\caption{\textbf{scPTR framework.} \textbf{(A)}~Splicing rates
-($\beta$) estimated via quantile regression on phase portraits;
-per-cell $\gamma = \beta \cdot u/s$ after $k$-NN
-Gaussian smoothing. \textbf{(B)}~Clustering in $\gamma$-space reveals post-transcriptional states invisible to expression analysis. \textbf{(C)}~PT velocity (neighbor-averaged $\gamma$ gradient)
-and library-size-corrected elastic net regression infer
-RBP--target networks.}
+\includegraphics[width=\textwidth,height=2.1in,keepaspectratio]{figures/fig1_method.pdf}
+\caption{\textbf{scPTR framework.}
+\textbf{(A)}~Gene-specific splicing rates ($\beta$) are estimated via quantile regression
+on unspliced/spliced phase portraits; per-cell degradation rates are then computed as
+$\gamma = \beta \cdot u/s$ after $k$-NN Gaussian-kernel smoothing.
+\textbf{(B)}~Clustering in $\gamma$-space via PCA and Leiden community detection reveals
+post-transcriptional states that are invisible to standard expression-based analysis.
+\textbf{(C)}~Post-transcriptional velocity (the neighbor-averaged $\gamma$ gradient)
+captures degradation dynamics orthogonal to RNA velocity, while library-size-corrected
+elastic net regression infers RBP--target regulatory networks.}
 \label{fig:method}
 \end{figure}
 
 \section*{Methods}
 
 For each gene, scPTR estimates the splicing rate $\beta$ as the 95th-percentile slope of
-the unspliced/spliced phase portrait, then computes per-cell degradation rates via the
-kinetic steady-state relation $\gamma_{ig} = \beta_g \cdot u_{ig} / s_{ig}$, where
-$u$ and $s$ are $k$-NN Gaussian-kernel-smoothed counts.
-PT states are discovered by PCA, $k$-NN graph construction,
-and Leiden clustering in $\gamma$-space. PT velocity is
-the weighted mean $\gamma$ difference between each cell and its neighbors,
-yielding a vector field orthogonal to RNA velocity.
-RBP--target networks are inferred via elastic net regression of target $\gamma$ on smoothed
-RBP expression, with library-size partial correlation to correct for
-destabilizing bias.
-A structured VAE (DeepPTR) with a kinetic decoder disentangles
-transcriptional ($z_T$) and post-transcriptional ($z_{PT}$) latent spaces under a negative
+the unspliced/spliced phase portrait (Fig.~\ref{fig:method}A), then computes per-cell
+degradation rates via the kinetic steady-state relation $\gamma_{ig} = \beta_g \cdot
+u_{ig} / s_{ig}$, where $u$ and $s$ are $k$-NN Gaussian-kernel-smoothed unspliced and
+spliced counts, respectively. The smoothing step uses adaptive bandwidths (median neighbor
+distance per cell) to denoise inherently sparse unspliced counts without oversmoothing.
+Post-transcriptional (PT) states are discovered by performing PCA, $k$-NN graph
+construction, and Leiden clustering entirely in $\gamma$-space rather than expression space
+(Fig.~\ref{fig:method}B). PT velocity is defined as the weighted mean $\gamma$ difference
+between each cell and its neighbors, yielding a per-cell vector field orthogonal to RNA
+velocity (Fig.~\ref{fig:method}C).
+RBP--target regulatory networks are inferred via elastic net regression of each target
+gene's $\gamma$ on smoothed RBP expression, with library-size partial correlation to
+correct for a systematic destabilizing bias arising from the correlation between library
+size and count-based $\gamma$ estimates. We additionally introduce DeepPTR, a structured
+variational autoencoder with a kinetic decoder that factorizes the latent space into
+transcriptional ($z_T$) and post-transcriptional ($z_{PT}$) components under a negative
 binomial observation model.
 
 \section*{Results}
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth,height=1.65in,keepaspectratio]{figures/fig2_validation.pdf}
-\caption{\textbf{Validation of $\gamma$ estimates.} \textbf{(A)}~Per-gene median $\gamma$
-correlates with published mRNA half-lives (Spearman $\rho = -0.81$, sci-fate;
-$-0.35$ to $-0.40$ in 10x data).
-\textbf{(B)}~miRNA targets show elevated $\gamma$ vs.\ background
-(126/215 families significant at FDR~$<$~0.05; aggregate $p = 4.7 \times 10^{-65}$).}
+\includegraphics[width=\textwidth,height=1.9in,keepaspectratio]{figures/fig2_validation.pdf}
+\caption{\textbf{Validation of $\gamma$ estimates.}
+\textbf{(A)}~Per-gene median $\gamma$ correlates strongly with published mRNA half-lives
+in the sci-fate metabolic-labeling dataset (Spearman $\rho = -0.81$; correlations of
+$-0.35$ to $-0.40$ in 10x developmental datasets).
+\textbf{(B)}~miRNA targets show significantly elevated $\gamma$ relative to non-target
+background genes in the pancreas dataset (126/215 families significant at FDR~$< 0.05$;
+aggregate $p = 4.7 \times 10^{-65}$).}
 \label{fig:validation}
 \end{figure}
 
-Gamma estimates were validated against published mRNA half-lives across three
+We validated $\gamma$ estimates against published mRNA half-lives across three
 species--platform combinations, achieving Spearman correlations from $-0.35$ (10x mouse
-developmental data) to $-0.81$ (sci-fate human metabolic labeling; Fig.~\ref{fig:validation}A).
-Predicted miRNA targets from TargetScan~8.0 were enriched among high-$\gamma$ genes for 59\%
-of 215 tested families (Fig.~\ref{fig:validation}B), and $\gamma$ correlated positively with
-3$'$~UTR length ($\rho = 0.34$, $p < 10^{-200}$).
+developmental data) to $-0.81$ (sci-fate human metabolic labeling with 4sU;
+Fig.~\ref{fig:validation}A). The strongest correlations arise in sci-fate because metabolic
+labeling captures new/old RNA directly, providing a cleaner unspliced signal, and permits
+same-species comparison with the human half-life reference. Predicted miRNA targets from
+TargetScan~8.0 were enriched among high-$\gamma$ genes for 59\% of 215 tested families
+(Fig.~\ref{fig:validation}B), and per-gene $\gamma$ correlated positively with both
+3$'$~UTR length ($\rho = 0.34$, $p < 10^{-200}$) and AU content ($\rho = 0.30$,
+$p < 10^{-150}$), consistent with known cis-regulatory determinants of mRNA stability.
+Gamma estimates were also robust to cell subsampling ($r > 0.97$ at 20\% subsampling) and
+exhibited sub-linear runtime scaling ($\sim$91 seconds estimated for 100{,}000 cells).
 
-Clustering in $\gamma$-space revealed expression-invisible PT states in 3/8 pancreatic and
-6/11 hippocampal cell types---subpopulations with distinct degradation programs yielding
-higher silhouette scores in $\gamma$-space than expression space (Fig.~\ref{fig:findings}A).
-These were enriched for coherent pathways: ER protein processing
-in pancreas; synaptic plasticity in dentate gyrus.
+Clustering in $\gamma$-space revealed expression-invisible PT states in 3 of 8 pancreatic
+and 6 of 11 hippocampal cell types---subpopulations with distinct degradation programs
+yielding higher silhouette scores in $\gamma$-space than expression space
+(Fig.~\ref{fig:findings}A). In pancreas, the Epsilon cluster showed the strongest
+invisibility: its gamma sub-clusters had silhouette $= 0.195$ in $\gamma$-space but were
+actively anti-clustered in expression space (silhouette $= -0.056$). These invisible states
+were enriched for biologically coherent pathways via GSEA: ER protein processing and
+autophagy in pancreatic endocrine cells; synaptic plasticity and spliceosome in hippocampal
+neurons---pathways directly relevant to the known biology of secretory and neuronal cells.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\textwidth,height=1.65in,keepaspectratio]{figures/fig3_findings.pdf}
-\caption{\textbf{Key findings.} \textbf{(A)}~Pancreas Epsilon cells form one
-cluster in expression space (silhouette~$= -0.056$) but separate into distinct PT states in
-$\gamma$-space (silhouette~$= 0.195$). \textbf{(B)}~Along pseudotime, $\gamma$
-changes precede expression changes for 63--78\% of transition genes ($p < 10^{-5}$).}
+\includegraphics[width=\textwidth,height=2.05in,keepaspectratio]{figures/fig3_findings.pdf}
+\caption{\textbf{Key biological findings.}
+\textbf{(A)}~Pancreas Epsilon cells appear as one homogeneous cluster in expression-space
+UMAP (silhouette~$= -0.056$) but separate into two distinct post-transcriptional states
+in $\gamma$-space UMAP (silhouette~$= 0.195$), demonstrating expression-invisible
+heterogeneity in mRNA degradation programs.
+\textbf{(B)}~Along developmental pseudotime, changes in $\gamma$ (red) precede changes in
+expression (blue) for 63--78\% of transition genes ($p < 10^{-5}$), implicating
+post-transcriptional rewiring as an early fate-commitment signal.}
 \label{fig:findings}
 \end{figure}
 
-PT velocity was orthogonal to RNA velocity
-(cosine similarity $\approx 0$) and degradation-rate changes
-preceded expression changes for 63--78\% of transition genes
-(Fig.~\ref{fig:findings}B). Library-size-corrected RBP--target network inference identified
-hub regulators (HNRNPA1, YBX1, ELAVL1) validated by DepMap CRISPR essentiality
-($p = 6.4 \times 10^{-5}$). Application to neuroblastoma revealed a predominantly stabilizing
-RBP landscape (66\% stabilizing edges), contrasting with developmental tissues.
+PT velocity---the neighbor-averaged $\gamma$ gradient---was orthogonal to RNA velocity
+(mean cosine similarity $\approx 0$) and demonstrated that degradation-rate changes
+temporally precede expression changes for 63--78\% of transition genes during
+differentiation (Fig.~\ref{fig:findings}B), with a mean lag of 2--4 pseudotime bins.
+This temporal ordering was significant in both pancreas ($p = 5.3 \times 10^{-6}$) and
+dentate gyrus ($p = 9.9 \times 10^{-13}$), supporting the hypothesis that
+post-transcriptional regulation acts as an early signal during cell fate transitions.
+Library-size-corrected RBP--target network inference identified hub regulators including
+HNRNPA1, YBX1, and ELAVL1/HuR, whose functional importance was validated by DepMap CRISPR
+essentiality scores (hub RBPs significantly more essential; $p = 6.4 \times 10^{-5}$).
+Application to human neuroblastoma [4] revealed a predominantly stabilizing RBP
+landscape (66\% stabilizing edges after correction), contrasting sharply with the
+destabilizing bias observed in developmental tissues and consistent with oncogenic mRNA
+stabilization programs. Hub RBPs in neuroblastoma (HNRNPA2B1, PABPC1) matched known cancer
+dependencies [5].
 
 \section*{Conclusions}
 
-scPTR reveals a previously inaccessible layer of post-transcriptional regulation
-in single-cell data. By treating mRNA degradation rates as per-cell observables, scPTR
-discovers expression-invisible cell states, shows that post-transcriptional rewiring
-precedes transcriptional changes during fate transitions, and identifies essential
-RBP regulators---establishing degradation-rate analysis as a complement to RNA velocity.
+scPTR reveals a systematic, previously inaccessible layer of post-transcriptional
+regulation in single-cell data. By treating mRNA degradation rates as per-cell observables,
+scPTR discovers expression-invisible cell states, demonstrates that post-transcriptional
+rewiring precedes transcriptional changes during fate transitions, and identifies
+functionally essential RBP regulators---establishing degradation-rate analysis as a
+complement to RNA velocity for single-cell biology.
 
-\vspace{2pt}
+\vspace{3pt}
 \noindent\textbf{Availability:} \url{https://github.com/bryanc5864/scPTR}
 
 \vspace{4pt}
 \noindent\textbf{\small References}\\
 {\footnotesize
-\noindent [1] La~Manno et al.\ \textit{Nature} \textbf{560}, 494 (2018).
-\enspace [2] Bergen et al.\ \textit{Nat.\ Biotechnol.} \textbf{38}, 1408 (2020).
-\enspace [3] Bae \& Bhatt.\ \textit{Curr.\ Opin.\ Genet.\ Dev.} \textbf{65}, 108 (2020).\\
-\noindent [4] Cao et al.\ \textit{Science} \textbf{370}, eaba7721 (2020).
+\noindent [1] La~Manno et al.\ RNA velocity of single cells. \textit{Nature}
+\textbf{560}, 494--498 (2018).
+\enspace [2] Bergen et al.\ Generalizing RNA velocity to transient cell states.
+\textit{Nat.\ Biotechnol.} \textbf{38}, 1408--1414 (2020).\\
+\noindent [3] Bae \& Bhatt.\ \textit{Curr.\ Opin.\ Genet.\ Dev.} \textbf{65},
+108--114 (2020).
+\enspace [4] Dong et al.\ \textit{Cancer Cell} \textbf{38}, 229--245 (2020).
 \enspace [5] Dempster et al.\ \textit{Genome Biol.} \textbf{22}, 343 (2021).
 }
 
