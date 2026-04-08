@@ -175,7 +175,7 @@ def fig1_method():
     ax_cr.axvline(0, color="k", lw=0.6)
     ax_cr.set_xlabel("Targets", fontsize=10)
     ax_cr.tick_params(axis="x", labelsize=8)
-    ax_cr.legend(fontsize=7, loc="lower right", frameon=False)
+    ax_cr.legend(fontsize=7, loc="upper right", frameon=False)
     ax_cr.spines["top"].set_visible(False)
     ax_cr.spines["right"].set_visible(False)
 
