@@ -51,9 +51,9 @@ on unspliced/spliced phase portraits; per-cell degradation rates are then comput
 $\gamma = \beta \cdot u/s$ after $k$-NN Gaussian-kernel smoothing.
 \textbf{(B)}~Clustering in $\gamma$-space via PCA and Leiden community detection reveals
 post-transcriptional states that are invisible to standard expression-based analysis.
-\textbf{(C)}~Post-transcriptional velocity (the neighbor-averaged $\gamma$ gradient)
-captures degradation dynamics orthogonal to RNA velocity, while library-size-corrected
-elastic net regression infers RBP--target regulatory networks.}
+\textbf{(C)}~Left: post-transcriptional velocity field on the $\gamma$-space UMAP of
+pancreas cells (3{,}696 cells, 8 cell types). Right: top RBP hubs from library-size-corrected
+network inference, showing destabilizing and stabilizing target counts.}
 \label{fig:method}
 \end{figure}
 
@@ -110,8 +110,8 @@ Clustering in $\gamma$-space revealed expression-invisible PT states in 3 of 8 p
 and 6 of 11 hippocampal cell types---subpopulations with distinct degradation programs
 yielding higher silhouette scores in $\gamma$-space than expression space
 (Fig.~\ref{fig:findings}A). In pancreas, the Epsilon cluster showed the strongest
-invisibility: its gamma sub-clusters had silhouette $= 0.195$ in $\gamma$-space but were
-actively anti-clustered in expression space (silhouette $= -0.056$). These invisible states
+invisibility: its gamma sub-clusters had silhouette $= 0.215$ in $\gamma$-space but were
+actively anti-clustered in expression space (silhouette $= -0.011$). These invisible states
 were enriched for biologically coherent pathways via GSEA: ER protein processing and
 autophagy in pancreatic endocrine cells; synaptic plasticity and spliceosome in hippocampal
 neurons---pathways directly relevant to the known biology of secretory and neuronal cells.
@@ -132,11 +132,11 @@ expression (blue) for 54\% of 1{,}472 transition genes ($p < 10^{-57}$), shown h
 
 PT velocity---the neighbor-averaged $\gamma$ gradient---was orthogonal to RNA velocity
 (mean cosine similarity $\approx 0$) and demonstrated that degradation-rate changes
-temporally precede expression changes for 63--78\% of transition genes during
-differentiation (Fig.~\ref{fig:findings}B), with a mean lag of 2--4 pseudotime bins.
-This temporal ordering was significant in both pancreas ($p = 5.3 \times 10^{-6}$) and
-dentate gyrus ($p = 9.9 \times 10^{-13}$), supporting the hypothesis that
-post-transcriptional regulation acts as an early signal during cell fate transitions.
+temporally precede expression changes for a significant majority of transition genes during
+differentiation (Fig.~\ref{fig:findings}B): 54\% of 1{,}472 transition genes in pancreas
+($p < 10^{-57}$) and 78\% of 146 genes in dentate gyrus ($p = 9.9 \times 10^{-13}$),
+supporting the hypothesis that post-transcriptional regulation acts as an early signal
+during cell fate transitions.
 Library-size-corrected RBP--target network inference identified hub regulators including
 HNRNPA1, YBX1, and ELAVL1/HuR, whose functional importance was validated by DepMap CRISPR
 essentiality scores (hub RBPs significantly more essential; $p = 6.4 \times 10^{-5}$).
