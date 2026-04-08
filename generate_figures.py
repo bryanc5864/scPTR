@@ -114,12 +114,6 @@ def fig1_method():
     y_traj = np.sin(t * 2.5) * 0.8 + np.random.normal(0, 0.07, 200)
     ax_cl.scatter(x_traj, y_traj, c=t, cmap="viridis", s=8, alpha=0.6,
                   edgecolors="none")
-    for i in range(0, 180, 25):
-        dx = x_traj[i + 15] - x_traj[i]
-        dy = y_traj[i + 15] - y_traj[i]
-        ax_cl.annotate("", xy=(x_traj[i] + dx * 0.6, y_traj[i] + dy * 0.6),
-                        xytext=(x_traj[i], y_traj[i]),
-                        arrowprops=dict(arrowstyle="->", color="k", lw=1.0))
     _hide_spines(ax_cl)
     ax_cl.set_xlabel("PT velocity", fontsize=8)
     ax_cl.text(-0.2, 1.05, "C", transform=ax_cl.transAxes, fontsize=14,
