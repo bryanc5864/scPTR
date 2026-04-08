@@ -84,11 +84,11 @@ binomial observation model.
 \centering
 \includegraphics[width=\textwidth,height=1.9in,keepaspectratio]{figures/fig2_validation.pdf}
 \caption{\textbf{Validation of $\gamma$ estimates.}
-\textbf{(A)}~Per-gene median $\gamma$ correlates strongly with published mRNA half-lives
-in the sci-fate metabolic-labeling dataset (Spearman $\rho = -0.81$; correlations of
-$-0.33$ to $-0.40$ in 10x developmental datasets).
-\textbf{(B)}~miRNA targets show significantly elevated $\gamma$ relative to non-target
-background genes in the pancreas dataset (126/215 families significant at FDR~$< 0.05$;
+\textbf{(A)}~Per-gene median $\gamma$ correlates negatively with published mRNA half-lives
+in the pancreas dataset (Spearman $\rho = -0.40$, $n = 4{,}308$ genes; $\rho = -0.81$ in
+sci-fate metabolic-labeling data).
+\textbf{(B)}~Top miRNA families show strong fold enrichment of $\gamma$ among predicted
+targets vs.\ non-targets in pancreas (126/215 families significant at FDR~$< 0.05$;
 aggregate $p = 4.7 \times 10^{-65}$).}
 \label{fig:validation}
 \end{figure}
@@ -120,13 +120,13 @@ neurons---pathways directly relevant to the known biology of secretory and neuro
 \centering
 \includegraphics[width=\textwidth,height=2.05in,keepaspectratio]{figures/fig3_findings.pdf}
 \caption{\textbf{Key biological findings.}
-\textbf{(A)}~Pancreas Epsilon cells appear as one homogeneous cluster in expression-space
-UMAP (silhouette~$= -0.056$) but separate into two distinct post-transcriptional states
-in $\gamma$-space UMAP (silhouette~$= 0.195$), demonstrating expression-invisible
-heterogeneity in mRNA degradation programs.
+\textbf{(A)}~Pancreas Epsilon cells ($n = 142$) appear as one homogeneous cluster in
+expression-space UMAP (silhouette~$= -0.011$) but separate into distinct
+post-transcriptional states in $\gamma$-space UMAP (silhouette~$= 0.215$), demonstrating
+expression-invisible heterogeneity in mRNA degradation programs.
 \textbf{(B)}~Along developmental pseudotime, changes in $\gamma$ (red) precede changes in
-expression (blue) for 63--78\% of transition genes ($p < 10^{-5}$), implicating
-post-transcriptional rewiring as an early fate-commitment signal.}
+expression (blue) for 54\% of 1{,}472 transition genes ($p < 10^{-57}$), shown here for
+\textit{Akr1c12}. Post-transcriptional rewiring acts as an early fate-commitment signal.}
 \label{fig:findings}
 \end{figure}
 
