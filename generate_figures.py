@@ -64,15 +64,15 @@ def fig1_method():
     s_line = np.linspace(0, s.max(), 50)
     ax_a.plot(s_line, beta_true * s_line, "k--", lw=1.8,
               label=r"$\beta$ (95th %ile)")
-    ax_a.set_xlabel("Spliced ($s$)", fontsize=10)
-    ax_a.set_ylabel("Unspliced ($u$)", fontsize=10)
-    ax_a.set_title("Rate estimation", fontweight="bold", fontsize=11)
-    ax_a.legend(fontsize=8, loc="upper left", frameon=False)
+    ax_a.set_xlabel("Spliced ($s$)", fontsize=11)
+    ax_a.set_ylabel("Unspliced ($u$)", fontsize=11)
+    ax_a.set_title("Rate estimation", fontweight="bold", fontsize=12)
+    ax_a.legend(fontsize=9, loc="upper left", frameon=False)
     ax_a.text(-0.18, 1.05, "A", transform=ax_a.transAxes, fontsize=14,
               fontweight="bold")
     cb = plt.colorbar(sc, ax=ax_a, shrink=0.75, aspect=15, pad=0.03)
-    cb.set_label(r"$\gamma$", fontsize=10)
-    cb.ax.tick_params(labelsize=7)
+    cb.set_label(r"$\gamma$", fontsize=11)
+    cb.ax.tick_params(labelsize=8)
 
     # Panel B: Expression vs Gamma UMAP
     gs_b = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 2], wspace=0.25)
@@ -89,16 +89,16 @@ def fig1_method():
     ax_bl = fig.add_subplot(gs_b[0, 0])
     ax_bl.scatter(x_expr, y_expr, c=GRAY, s=6, alpha=0.5, edgecolors="none")
     _hide_spines(ax_bl)
-    ax_bl.set_xlabel("Expression\nspace", fontsize=8)
+    ax_bl.set_xlabel("Expression\nspace", fontsize=10)
     ax_bl.text(-0.3, 1.05, "B", transform=ax_bl.transAxes, fontsize=14,
                fontweight="bold")
 
     ax_br = fig.add_subplot(gs_b[0, 1])
     ax_br.scatter(x_gamma, y_gamma, c=colors_g, s=6, alpha=0.6, edgecolors="none")
     _hide_spines(ax_br)
-    ax_br.set_xlabel(r"$\gamma$ space", fontsize=8)
+    ax_br.set_xlabel(r"$\gamma$ space", fontsize=10)
 
-    fig.text(0.455, 0.97, "Invisible states", fontsize=11, fontweight="bold",
+    fig.text(0.455, 0.97, "Invisible states", fontsize=12, fontweight="bold",
              ha="center", va="top")
 
     # Panel C: PT velocity on real gamma UMAP + real RBP network hubs
@@ -151,7 +151,7 @@ def fig1_method():
                                 mutation_scale=6, alpha=0.5))
 
     _hide_spines(ax_cl)
-    ax_cl.set_xlabel("PT velocity ($\\gamma$ UMAP)", fontsize=7.5)
+    ax_cl.set_xlabel("PT velocity ($\\gamma$ UMAP)", fontsize=10)
     ax_cl.text(-0.15, 1.05, "C", transform=ax_cl.transAxes, fontsize=14,
                fontweight="bold")
 
@@ -171,15 +171,19 @@ def fig1_method():
     ax_cr.barh(y_pos, stab, height=0.55, color=BLUE, alpha=0.85,
                edgecolor="white", linewidth=0.5, label="Stab.")
     ax_cr.set_yticks(y_pos)
-    ax_cr.set_yticklabels(rbp_names, fontsize=7, style="italic")
+    ax_cr.set_yticklabels(rbp_names, fontsize=9, style="italic")
     ax_cr.axvline(0, color="k", lw=0.6)
-    ax_cr.set_xlabel("Targets", fontsize=7.5)
-    ax_cr.tick_params(axis="x", labelsize=6.5)
-    ax_cr.legend(fontsize=5.5, loc="lower right", frameon=False)
+    ax_cr.set_xlabel("Targets", fontsize=10)
+    ax_cr.tick_params(axis="x", labelsize=8)
+    ax_cr.legend(fontsize=7, loc="lower right", frameon=False)
     ax_cr.spines["top"].set_visible(False)
     ax_cr.spines["right"].set_visible(False)
-    fig.text(0.80, 0.97, "Velocity & networks", fontsize=11, fontweight="bold",
-             ha="center", va="top")
+
+    # Center the "Velocity & networks" title over both C sub-panels
+    c_left = ax_cl.get_position().x0
+    c_right = ax_cr.get_position().x1
+    fig.text((c_left + c_right) / 2, 0.97, "Velocity & networks",
+             fontsize=12, fontweight="bold", ha="center", va="top")
 
     fig.savefig("figures/fig1_method.pdf")
     plt.close(fig)
