@@ -102,62 +102,83 @@ def fig1_method():
     fig.text(0.455, 0.97, "Invisible states", fontsize=11, fontweight="bold",
              ha="center", va="top")
 
-    # Panel C: Velocity + Network — give network more room
-    gs_c = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 4],
-                                            wspace=0.15,
-                                            width_ratios=[0.8, 1.2])
+    # Panel C: PT velocity on real gamma UMAP + real RBP network hubs
+    import json
+    from pathlib import Path
+    DATA = Path("real_figure_data")
 
-    # Streamlines
+    gs_c = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 4],
+                                            wspace=0.20,
+                                            width_ratios=[1.0, 1.0])
+
+    # ── Left: PT velocity field on gamma-space UMAP (real data) ──
     ax_cl = fig.add_subplot(gs_c[0, 0])
-    t = np.linspace(0, 1, 200)
-    x_traj = t + np.random.normal(0, 0.07, 200)
-    y_traj = np.sin(t * 2.5) * 0.8 + np.random.normal(0, 0.07, 200)
-    ax_cl.scatter(x_traj, y_traj, c=t, cmap="viridis", s=8, alpha=0.6,
-                  edgecolors="none")
+    vel_data = np.load(DATA / "pt_velocity_umap.npz", allow_pickle=True)
+    umap = vel_data["umap"]
+    vel = vel_data["velocity"]
+    ctypes = vel_data["cell_types"]
+
+    # Color by cell type
+    unique_ct = sorted(set(ctypes))
+    ct_colors = dict(zip(unique_ct,
+        plt.cm.tab10(np.linspace(0, 1, len(unique_ct)))))
+    c_arr = [ct_colors[c] for c in ctypes]
+
+    ax_cl.scatter(umap[:, 0], umap[:, 1], c=c_arr, s=5, alpha=0.6,
+                  edgecolors="none", rasterized=True)
+
+    # Draw velocity arrows on a coarse grid
+    n_grid = 8
+    x_edges = np.linspace(umap[:, 0].min(), umap[:, 0].max(), n_grid + 1)
+    y_edges = np.linspace(umap[:, 1].min(), umap[:, 1].max(), n_grid + 1)
+    for xi in range(n_grid):
+        for yi in range(n_grid):
+            mask = ((umap[:, 0] >= x_edges[xi]) & (umap[:, 0] < x_edges[xi + 1]) &
+                    (umap[:, 1] >= y_edges[yi]) & (umap[:, 1] < y_edges[yi + 1]))
+            if mask.sum() < 5:
+                continue
+            cx = umap[mask, 0].mean()
+            cy = umap[mask, 1].mean()
+            vx = vel[mask, 0].mean()
+            vy = vel[mask, 1].mean()
+            vmag = np.sqrt(vx**2 + vy**2)
+            if vmag < 0.03:
+                continue
+            arrow_scale = 1.2
+            ax_cl.annotate("",
+                xy=(cx + vx * arrow_scale, cy + vy * arrow_scale),
+                xytext=(cx, cy),
+                arrowprops=dict(arrowstyle="-|>", color="0.15", lw=0.6,
+                                mutation_scale=6, alpha=0.5))
+
     _hide_spines(ax_cl)
-    ax_cl.set_xlabel("PT velocity", fontsize=8)
-    ax_cl.text(-0.2, 1.05, "C", transform=ax_cl.transAxes, fontsize=14,
+    ax_cl.set_xlabel("PT velocity ($\\gamma$ UMAP)", fontsize=7.5)
+    ax_cl.text(-0.15, 1.05, "C", transform=ax_cl.transAxes, fontsize=14,
                fontweight="bold")
 
-    # Network — bigger, more space for labels
+    # ── Right: Top RBP hubs bar chart (real data) ──
     ax_cr = fig.add_subplot(gs_c[0, 1])
-    n_nodes = 6
-    labels = ["RBP1", "RBP2", "T1", "T2", "T3", "T4"]
-    # Spread nodes further apart
-    angles = np.linspace(0, 2 * np.pi, n_nodes, endpoint=False) - np.pi / 2
-    radius = 1.0
-    nx_pos = radius * np.cos(angles)
-    ny_pos = radius * np.sin(angles)
-    edges = [(0, 2, RED), (0, 3, RED), (1, 4, BLUE), (1, 5, BLUE),
-             (0, 4, RED), (1, 2, BLUE)]
-    for i, j, c in edges:
-        # Shorten arrows so they don't overlap nodes
-        dx = nx_pos[j] - nx_pos[i]
-        dy = ny_pos[j] - ny_pos[i]
-        dist = np.sqrt(dx**2 + dy**2)
-        shrink = 0.15 / dist
-        ax_cr.annotate("",
-                        xy=(nx_pos[j] - dx * shrink, ny_pos[j] - dy * shrink),
-                        xytext=(nx_pos[i] + dx * shrink, ny_pos[i] + dy * shrink),
-                        arrowprops=dict(arrowstyle="-|>", color=c, lw=1.2,
-                                        alpha=0.7, mutation_scale=12))
-    for i, lab in enumerate(labels):
-        fc = TEAL if "RBP" in lab else "#DDDDDD"
-        ax_cr.plot(nx_pos[i], ny_pos[i], "o", ms=12, color=fc,
-                   markeredgecolor="k", markeredgewidth=0.7)
-        # Place label outside the node, further out for clarity
-        label_r = 1.55
-        lx = label_r * np.cos(angles[i])
-        ly = label_r * np.sin(angles[i])
-        ax_cr.text(lx, ly, lab, fontsize=8, ha="center", va="center",
-                   fontweight="bold")
-    ax_cr.set_xlim(-2.1, 2.1)
-    ax_cr.set_ylim(-2.1, 2.1)
-    # xlim/ylim set above after label placement
-    ax_cr.set_aspect("equal")
-    _hide_spines(ax_cr)
-    ax_cr.set_xlabel("RBP network", fontsize=8)
+    with open(DATA / "rbp_network.json") as f:
+        net = json.load(f)
 
+    hubs = net["top_hubs"][:5]  # top 5
+    rbp_names = [h["rbp"] for h in hubs]
+    dest = [h["destabilizing"] for h in hubs]
+    stab = [-h["stabilizing"] for h in hubs]  # negative for left side
+    y_pos = np.arange(len(rbp_names))
+
+    ax_cr.barh(y_pos, dest, height=0.55, color=RED, alpha=0.85,
+               edgecolor="white", linewidth=0.5, label="Destab.")
+    ax_cr.barh(y_pos, stab, height=0.55, color=BLUE, alpha=0.85,
+               edgecolor="white", linewidth=0.5, label="Stab.")
+    ax_cr.set_yticks(y_pos)
+    ax_cr.set_yticklabels(rbp_names, fontsize=7, style="italic")
+    ax_cr.axvline(0, color="k", lw=0.6)
+    ax_cr.set_xlabel("Targets", fontsize=7.5)
+    ax_cr.tick_params(axis="x", labelsize=6.5)
+    ax_cr.legend(fontsize=5.5, loc="lower right", frameon=False)
+    ax_cr.spines["top"].set_visible(False)
+    ax_cr.spines["right"].set_visible(False)
     fig.text(0.80, 0.97, "Velocity & networks", fontsize=11, fontweight="bold",
              ha="center", va="top")
 
