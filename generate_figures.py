@@ -45,12 +45,11 @@ def _hide_spines(ax):
 # ── FIGURE 1 ─────────────────────────────────────────────────────────────────
 
 def fig1_method():
-    # Wider figure to fill page width
-    fig = plt.figure(figsize=(7.5, 2.8))
-    # Give panel C more room (increased from 1.0 to 1.4)
+    # Full page width (textwidth ~7.5in for 0.6in margins)
+    fig = plt.figure(figsize=(7.8, 2.9))
     gs = gridspec.GridSpec(1, 5, figure=fig,
-                           width_ratios=[1.2, 0.03, 0.9, 0.03, 1.4],
-                           wspace=0.06, left=0.06, right=0.98)
+                           width_ratios=[1.1, 0.03, 0.85, 0.03, 1.8],
+                           wspace=0.06, left=0.05, right=0.99)
 
     # Panel A: Phase portrait
     ax_a = fig.add_subplot(gs[0, 0])
@@ -108,8 +107,8 @@ def fig1_method():
     DATA = Path("real_figure_data")
 
     gs_c = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 4],
-                                            wspace=0.20,
-                                            width_ratios=[1.0, 1.0])
+                                            wspace=0.35,
+                                            width_ratios=[1.0, 1.1])
 
     # ── Left: PT velocity field on gamma-space UMAP (real data) ──
     ax_cl = fig.add_subplot(gs_c[0, 0])
