@@ -1,0 +1,39 @@
+{
+  "n_significant_fdr05": 126,
+  "n_total": 215,
+  "pct_significant": 59,
+  "aggregate_p": 4.68e-65,
+  "median_fold_enrichment": 24.3,
+  "top_families": [
+    {
+      "mirna": "miR-153-3p",
+      "targets": 339,
+      "fold": 127.8,
+      "fdr": 4.9e-17
+    },
+    {
+      "mirna": "miR-30e-5p",
+      "targets": 453,
+      "fold": 85.4,
+      "fdr": 4.9e-17
+    },
+    {
+      "mirna": "miR-124-3p",
+      "targets": 604,
+      "fold": 65.5,
+      "fdr": 2.5e-16
+    },
+    {
+      "mirna": "miR-130a-3p",
+      "targets": 410,
+      "fold": 81.3,
+      "fdr": 3.3e-14
+    },
+    {
+      "mirna": "miR-138-5p",
+      "targets": 287,
+      "fold": 105.6,
+      "fdr": 1.6e-11
+    }
+  ]
+}

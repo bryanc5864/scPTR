@@ -175,65 +175,70 @@ def fig1_method():
 # ── FIGURE 2 ─────────────────────────────────────────────────────────────────
 
 def fig2_validation():
+    import json
+    from pathlib import Path
+
+    DATA = Path("real_figure_data")
     fig, axes = plt.subplots(1, 2, figsize=(7.5, 2.6))
 
-    # Panel A: Half-life scatter
+    # Panel A: Half-life scatter — REAL DATA from pancreas scPTR pipeline
     ax = axes[0]
-    n = 500
-    x = np.random.normal(0, 1, n)
-    noise = np.random.normal(0, 0.6, n)
-    y = -0.81 * x + noise * np.sqrt(1 - 0.81**2)
-    x_hl = np.exp(x + 3)
-    y_gamma = np.exp(y)
+    hl_data = np.load(DATA / "halflife_scatter.npz")
+    gamma_vals = hl_data["gamma"]
+    halflife_vals = hl_data["halflife"]
+    sp_r = float(hl_data["spearman_r"])
+    n_genes = int(hl_data["n_genes"])
 
-    ax.scatter(np.log10(x_hl), np.log10(y_gamma), s=6, alpha=0.35, c=BLUE,
-               edgecolors="none")
-    z = np.polyfit(np.log10(x_hl), np.log10(y_gamma), 1)
-    x_fit = np.linspace(np.log10(x_hl).min(), np.log10(x_hl).max(), 50)
+    log_hl = np.log10(halflife_vals)
+    log_gamma = np.log10(gamma_vals)
+
+    ax.scatter(log_hl, log_gamma, s=4, alpha=0.25, c=BLUE, edgecolors="none",
+               rasterized=True)
+    z = np.polyfit(log_hl, log_gamma, 1)
+    x_fit = np.linspace(log_hl.min(), log_hl.max(), 50)
     ax.plot(x_fit, np.polyval(z, x_fit), "k-", lw=1.5)
     ax.set_xlabel(r"log$_{10}$(mRNA half-life, hr)", fontsize=10)
-    ax.set_ylabel(r"log$_{10}$($\gamma$)", fontsize=10)
-    ax.set_title("Half-life validation (sci-fate)", fontweight="bold", fontsize=11)
+    ax.set_ylabel(r"log$_{10}$(median $\gamma$)", fontsize=10)
+    ax.set_title("Half-life validation (pancreas)", fontweight="bold", fontsize=11)
     ax.text(0.97, 0.95,
-            r"Spearman $\rho$ = $-$0.81" + "\n" +
-            r"$p$ < 10$^{-300}$" + "\n" +
-            r"$n$ = 6,995 genes",
+            f"Spearman $\\rho$ = {sp_r:.2f}\n"
+            f"$p$ < 10$^{{-160}}$\n"
+            f"$n$ = {n_genes:,} genes",
             transform=ax.transAxes, fontsize=9, ha="right", va="top",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="white", alpha=0.9,
                       edgecolor=GRAY, linewidth=0.5))
     ax.text(-0.16, 1.05, "A", transform=ax.transAxes, fontsize=14,
             fontweight="bold")
 
-    # Panel B: miRNA target enrichment — horizontal bars, labels clear of bars
+    # Panel B: miRNA target enrichment — real documented values from RESULTS.md
     ax = axes[1]
-    families = ["miR-130a-3p", "miR-124-3p", "miR-30e-5p", "miR-153-3p"]
-    target_gamma = [0.81, 0.66, 0.85, 1.28]
-    bg_gamma = [0.01, 0.01, 0.01, 0.01]
-    y_pos = np.arange(len(families))
-    h = 0.30
+    with open(DATA / "mirna_enrichment_documented.json") as f:
+        mirna = json.load(f)
 
-    ax.barh(y_pos + h / 2, target_gamma, h, color=RED, alpha=0.85,
-            label="miRNA targets", edgecolor="white", linewidth=0.5)
-    ax.barh(y_pos - h / 2, bg_gamma, h, color=GRAY, alpha=0.5,
-            label="Background", edgecolor="white", linewidth=0.5)
-    for i in range(len(families)):
-        ax.text(target_gamma[i] + 0.04, y_pos[i] + h / 2, "***", va="center",
-                fontsize=9, fontweight="bold")
+    families_data = mirna["top_families"]
+    families = [d["mirna"] for d in families_data]
+    fold_enrich = [d["fold"] for d in families_data]
+    n_targets = [d["targets"] for d in families_data]
+    y_pos = np.arange(len(families))
+
+    bars = ax.barh(y_pos, fold_enrich, height=0.55, color=RED, alpha=0.85,
+                   edgecolor="white", linewidth=0.5)
+    for i, (fe, nt) in enumerate(zip(fold_enrich, n_targets)):
+        ax.text(fe + 2, y_pos[i], f"***  ({nt} targets)", va="center",
+                fontsize=7.5, color="0.3")
     ax.set_yticks(y_pos)
     ax.set_yticklabels(families, fontsize=9)
-    ax.set_xlabel(r"Median $\gamma$", fontsize=10)
+    ax.set_xlabel("Fold enrichment (target vs non-target $\\gamma$)", fontsize=10)
     ax.set_title("miRNA target enrichment (pancreas)", fontweight="bold", fontsize=11)
-    ax.legend(fontsize=8.5, frameon=False, loc="lower right")
-    # Push x-axis to start at 0 with padding on right so bars don't touch labels
-    ax.set_xlim(0, 1.55)
-    ax.text(-0.22, 1.05, "B", transform=ax.transAxes, fontsize=14,
-            fontweight="bold")
-    ax.text(0.97, 0.97,
-            "126 / 215 families significant\n(FDR < 0.05)\n" +
+    ax.text(0.03, 0.97,
+            f"{mirna['n_significant_fdr05']} / {mirna['n_total']} families\n"
+            f"significant (FDR < 0.05)\n"
             r"aggregate $p$ = 4.7$\times$10$^{-65}$",
-            transform=ax.transAxes, fontsize=8.5, ha="right", va="top",
+            transform=ax.transAxes, fontsize=8, ha="left", va="top",
             bbox=dict(boxstyle="round,pad=0.4", facecolor="white", alpha=0.9,
                       edgecolor=GRAY, linewidth=0.5))
+    ax.text(-0.22, 1.05, "B", transform=ax.transAxes, fontsize=14,
+            fontweight="bold")
 
     fig.tight_layout()
     fig.savefig("figures/fig2_validation.pdf")
@@ -244,77 +249,109 @@ def fig2_validation():
 # ── FIGURE 3 ─────────────────────────────────────────────────────────────────
 
 def fig3_findings():
-    # Wider figure matching fig1
+    from pathlib import Path
+
+    DATA = Path("real_figure_data")
+
     fig = plt.figure(figsize=(7.5, 2.8))
     gs = gridspec.GridSpec(1, 2, figure=fig, wspace=0.30,
                            left=0.05, right=0.97)
 
-    # --- Panel A: side-by-side UMAPs ---
+    # --- Panel A: side-by-side UMAPs — REAL epsilon cell data ---
     gs_a = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 0], wspace=0.20)
 
-    n_cells = 142
-    theta_e = np.random.uniform(0, 2 * np.pi, n_cells)
-    r_e = np.abs(np.random.normal(0, 0.8, n_cells))
-    ex = r_e * np.cos(theta_e)
-    ey = r_e * np.sin(theta_e)
-    state = np.random.choice([0, 1], n_cells, p=[0.55, 0.45])
-    gx = ex + state * 2.8 + np.random.normal(0, 0.15, n_cells)
-    gy = ey + (state - 0.5) * 1.2 + np.random.normal(0, 0.15, n_cells)
-    colors_state = [BLUE if s == 0 else ORANGE for s in state]
+    eps = np.load(DATA / "epsilon_states.npz", allow_pickle=True)
+    expr_umap = eps["expr_umap"]
+    gamma_umap = eps["gamma_umap"]
+    leiden = eps["leiden"]
+    sil_gamma = float(eps["sil_gamma"])
+    sil_expr = float(eps["sil_expr"])
+    n_cells = int(eps["n_cells"])
+
+    # Color by leiden cluster
+    unique_labels = sorted(set(leiden))
+    cmap = [BLUE, ORANGE, TEAL, RED, PURPLE]
+    colors_state = [cmap[unique_labels.index(l) % len(cmap)] for l in leiden]
 
     ax_al = fig.add_subplot(gs_a[0, 0])
-    ax_al.scatter(ex, ey, c=colors_state, s=18, alpha=0.6, edgecolors="none")
+    ax_al.scatter(expr_umap[:, 0], expr_umap[:, 1], c=colors_state, s=18,
+                  alpha=0.6, edgecolors="none")
     _hide_spines(ax_al)
     ax_al.set_xlabel("Expression UMAP", fontsize=10)
-    ax_al.text(0.5, -0.20, "Silhouette = $-$0.056", transform=ax_al.transAxes,
-               fontsize=9, ha="center", color=GRAY)
+    sil_e_str = f"$-${abs(sil_expr):.3f}" if sil_expr < 0 else f"{sil_expr:.3f}"
+    ax_al.text(0.5, -0.20, f"Silhouette = {sil_e_str}",
+               transform=ax_al.transAxes, fontsize=9, ha="center", color=GRAY)
     ax_al.text(-0.12, 1.05, "A", transform=ax_al.transAxes, fontsize=14,
                fontweight="bold")
 
     ax_ar = fig.add_subplot(gs_a[0, 1])
-    ax_ar.scatter(gx, gy, c=colors_state, s=18, alpha=0.6, edgecolors="none")
+    ax_ar.scatter(gamma_umap[:, 0], gamma_umap[:, 1], c=colors_state, s=18,
+                  alpha=0.6, edgecolors="none")
     _hide_spines(ax_ar)
     ax_ar.set_xlabel(r"$\gamma$ UMAP", fontsize=10)
-    ax_ar.text(0.5, -0.20, "Silhouette = 0.195", transform=ax_ar.transAxes,
-               fontsize=9, ha="center", color=RED)
+    ax_ar.text(0.5, -0.20, f"Silhouette = {sil_gamma:.3f}",
+               transform=ax_ar.transAxes, fontsize=9, ha="center", color=RED)
 
-    # Suptitle for panel A
-    fig.text(0.27, 1.0, "Invisible PT states (Epsilon cells)",
+    fig.text(0.27, 1.0, f"Invisible PT states (Epsilon, $n$={n_cells} cells)",
              fontsize=11, fontweight="bold", ha="center", va="top")
 
-    # --- Panel B: Temporal precedence ---
+    # --- Panel B: Temporal precedence — REAL per-gene onset data ---
     ax_b = fig.add_subplot(gs[0, 1])
-    t = np.linspace(0, 1, 200)
-    gamma_curve = 1 / (1 + np.exp(-15 * (t - 0.35)))
-    expr_curve = 1 / (1 + np.exp(-15 * (t - 0.55)))
 
-    ax_b.plot(t, gamma_curve, color=RED, lw=2.5, label=r"$\gamma$ (degradation rate)")
-    ax_b.plot(t, expr_curve, color=BLUE, lw=2.5, label="Expression")
+    prec = np.load(DATA / "temporal_precedence.npz")
+    example_gamma = prec["example_gamma_profile"]
+    example_expr = prec["example_expr_profile"]
+    pt_bins = prec["pseudotime_bins"]
+    pct_gamma = float(prec["pct_gamma"])
+    pct_expr = float(prec["pct_expr"])
+    p_binom = float(prec["p_binom"])
+    n_trans = int(prec["n_transition"])
+    gamma_leads_n = int(prec["gamma_leads"])
+    expr_leads_n = int(prec["expr_leads"])
+    example_gene = str(prec["example_gene"])
 
-    # Shaded lag region
-    ax_b.axvspan(0.35, 0.55, alpha=0.12, color=PURPLE)
+    # Smooth profiles for visual clarity
+    from scipy.ndimage import uniform_filter1d
+    g_smooth = uniform_filter1d(example_gamma, size=5)
+    e_smooth = uniform_filter1d(example_expr, size=5)
 
-    # Clear "gamma leads" annotation with arrow and white background
-    ax_b.annotate("", xy=(0.55, 0.50), xytext=(0.35, 0.50),
-                  arrowprops=dict(arrowstyle="<->", color=PURPLE, lw=2.0))
-    ax_b.text(0.45, 0.62, r"$\gamma$ leads", fontsize=11, ha="center",
-              color=PURPLE, fontweight="bold",
-              bbox=dict(boxstyle="round,pad=0.2", facecolor="white",
-                        edgecolor=PURPLE, alpha=0.9, linewidth=0.8))
+    ax_b.plot(pt_bins, g_smooth, color=RED, lw=2.5,
+              label=r"$\gamma$ (degradation rate)")
+    ax_b.plot(pt_bins, e_smooth, color=BLUE, lw=2.5, label="Expression")
 
-    ax_b.plot(0.35, 0.5, "o", color=RED, ms=7, zorder=5)
-    ax_b.plot(0.55, 0.5, "o", color=BLUE, ms=7, zorder=5)
+    # Find onset points (20% threshold)
+    threshold = 0.2
+    g_onset_idx = np.argmax(g_smooth >= threshold)
+    e_onset_idx = np.argmax(e_smooth >= threshold)
+    g_onset_t = pt_bins[g_onset_idx]
+    e_onset_t = pt_bins[e_onset_idx]
+
+    # Shade the lag region
+    if g_onset_t < e_onset_t:
+        ax_b.axvspan(g_onset_t, e_onset_t, alpha=0.12, color=PURPLE)
+        mid_t = (g_onset_t + e_onset_t) / 2
+        ax_b.annotate("", xy=(e_onset_t, 0.50), xytext=(g_onset_t, 0.50),
+                      arrowprops=dict(arrowstyle="<->", color=PURPLE, lw=2.0))
+        ax_b.text(mid_t, 0.62, r"$\gamma$ leads", fontsize=11, ha="center",
+                  color=PURPLE, fontweight="bold",
+                  bbox=dict(boxstyle="round,pad=0.2", facecolor="white",
+                            edgecolor=PURPLE, alpha=0.9, linewidth=0.8))
+        ax_b.plot(g_onset_t, 0.5, "o", color=RED, ms=7, zorder=5)
+        ax_b.plot(e_onset_t, 0.5, "o", color=BLUE, ms=7, zorder=5)
 
     ax_b.set_xlabel("Pseudotime", fontsize=11)
     ax_b.set_ylabel("Normalized signal", fontsize=11)
-    ax_b.set_title("Temporal precedence", fontweight="bold", fontsize=12)
+    ax_b.set_title(f"Temporal precedence ({example_gene})",
+                   fontweight="bold", fontsize=12)
     ax_b.legend(fontsize=10, frameon=False, loc="upper left")
     ax_b.text(-0.14, 1.05, "B", transform=ax_b.transAxes, fontsize=14,
               fontweight="bold")
+
+    p_exp = int(np.floor(np.log10(max(p_binom, 1e-300))))
     ax_b.text(0.97, 0.42,
-              "63% (pancreas)\n78% (dentate gyrus)\n" +
-              r"$\gamma$ leads expression" + "\n" +
-              r"$p$ < 10$^{-5}$",
+              f"{pct_gamma:.0f}% of {n_trans} transition genes\n"
+              r"$\gamma$ leads expression" + "\n"
+              f"$p$ < 10$^{{{p_exp}}}$",
               transform=ax_b.transAxes, fontsize=9.5, ha="right", va="top",
               bbox=dict(boxstyle="round,pad=0.4", facecolor="white", alpha=0.9,
                         edgecolor=GRAY, linewidth=0.5))
