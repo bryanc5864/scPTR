@@ -72,13 +72,18 @@ scPTR gamma estimates have been validated against:
 
 | Validation | Result |
 |------------|--------|
-| Published mRNA half-lives | r = −0.81 (sci-fate), −0.35 to −0.40 (10x) |
-| miRNA target enrichment | 59% of 215 families enriched (p = 4.7e-65) |
-| 3' UTR sequence features | Positive correlation with UTR length and AU content |
-| DepMap CRISPR essentiality | Hub RBPs more essential (p = 6.4e-5) |
+| Published mRNA half-lives | ρ = −0.81 (sci-fate), −0.33 to −0.40 (10x developmental) |
+| Method comparison | Outperforms scVelo steady-state (−0.37) and velVI (−0.28) |
+| miRNA target enrichment | 59% of 215 families enriched (p = 4.7×10⁻⁶⁵) |
+| 3′ UTR sequence features | UTR length ρ = 0.34 (p < 10⁻²⁰⁰), AU content ρ = 0.30 |
+| DepMap CRISPR essentiality | Hub RBPs more essential (p = 6.4×10⁻⁵) |
 | Subsampling robustness | r > 0.97 at 20% subsampling |
 
-See [RESULTS.md](RESULTS.md) for comprehensive results across four datasets.
+## Key findings
+
+- **Expression-invisible states**: 3/8 pancreatic and 6/11 hippocampal cell types harbor post-transcriptional subpopulations undetectable by expression analysis (confirmed by zero-permutation control, ARI ≈ 0), enriched for ER stress/autophagy and synaptic plasticity pathways
+- **Temporal precedence**: degradation-rate changes precede expression changes for 54% of transition genes in pancreas (p < 10⁻⁵⁷) and 78% in dentate gyrus (p = 9.9×10⁻¹³)
+- **RBP networks**: library-size-corrected inference identifies essential hub regulators (HNRNPA1, YBX1, ELAVL1/HuR); neuroblastoma shows 66% stabilizing edges vs. destabilizing bias in developmental tissues
 
 ## Datasets
 
