@@ -27,20 +27,18 @@
 
 \section*{Introduction}
 
-Single-cell RNA sequencing jointly captures spliced and unspliced transcripts, yet
-computational frameworks have focused almost exclusively on transcriptional dynamics---most
-notably RNA velocity, which models the rate of change of spliced mRNA abundance
-[1,2]. Meanwhile, mRNA degradation---orchestrated by RNA-binding
-proteins (RBPs), microRNAs, and \textit{cis}-regulatory elements---is a major determinant
-of steady-state gene expression and is increasingly recognized as a driver of cell fate
-transitions [3]. Despite this, no general framework exists to systematically
-estimate per-cell mRNA degradation rates, discover cell populations defined by
-post-transcriptional programs, or infer the regulatory networks governing mRNA stability at
-single-cell resolution.
+Transcript abundance is jointly determined by synthesis and degradation, yet single-cell
+computational frameworks have addressed only one side of this balance. RNA velocity models
+transcriptional dynamics from spliced/unspliced ratios [1,2], but mRNA
+degradation---orchestrated by RNA-binding proteins (RBPs), microRNAs, and
+\textit{cis}-regulatory elements---is an equally fundamental determinant of steady-state
+expression and a recognized driver of cell fate transitions [3]. No framework exists to
+estimate per-cell, per-gene degradation rates, discover populations defined by
+post-transcriptional programs, or infer the regulatory networks controlling mRNA stability
+at single-cell resolution.
 We present \textbf{scPTR} (Single-Cell Post-Transcriptional Regulatory Decomposition), a
-framework that estimates per-cell, per-gene mRNA degradation rates ($\gamma$)
-from standard scRNA-seq data and treats $\gamma$ as a primary analytical
-axis---complementary to, and independent of, RNA velocity.
+framework that makes per-cell mRNA degradation rates ($\gamma$) a first-class observable
+from standard scRNA-seq---complementary to, and independent of, RNA velocity.
 
 \begin{figure}[h!]
 \centering
@@ -86,7 +84,8 @@ binomial observation model.
 \caption{\textbf{Validation of $\gamma$ estimates.}
 \textbf{(A)}~Per-gene median $\gamma$ correlates negatively with published mRNA half-lives
 in the pancreas dataset (Spearman $\rho = -0.40$, $n = 4{,}308$ genes; $\rho = -0.81$ in
-sci-fate metabolic-labeling data).
+sci-fate metabolic-labeling data), outperforming scVelo steady-state ($\rho = -0.37$) and
+velVI ($\rho = -0.28$).
 \textbf{(B)}~Top miRNA families show strong fold enrichment of $\gamma$ among predicted
 targets vs.\ non-targets in pancreas (126/215 families significant at FDR~$< 0.05$;
 aggregate $p = 4.7 \times 10^{-65}$).}
@@ -94,27 +93,25 @@ aggregate $p = 4.7 \times 10^{-65}$).}
 \end{figure}
 
 We validated $\gamma$ estimates against published mRNA half-lives across three
-species--platform combinations, achieving Spearman correlations from $-0.33$ (10x mouse
-developmental data) to $-0.81$ (sci-fate human metabolic labeling with 4sU;
-Fig.~\ref{fig:validation}A). The strongest correlations arise in sci-fate because metabolic
-labeling captures new/old RNA directly, providing a cleaner unspliced signal, and permits
-same-species comparison with the human half-life reference. Predicted miRNA targets from
-TargetScan~8.0 were enriched among high-$\gamma$ genes for 59\% of 215 tested families
-(Fig.~\ref{fig:validation}B), and per-gene $\gamma$ correlated positively with both
-3$'$~UTR length ($\rho = 0.34$, $p < 10^{-200}$) and AU content ($\rho = 0.30$,
-$p < 10^{-150}$), consistent with known cis-regulatory determinants of mRNA stability.
-Gamma estimates were also robust to cell subsampling ($r > 0.97$ at 20\% subsampling) and
-exhibited sub-linear runtime scaling ($\sim$91 seconds estimated for 100{,}000 cells).
+species--platform combinations. On 10x developmental data, scPTR (Spearman $\rho = -0.40$,
+pancreas) outperforms scVelo steady-state ($\rho = -0.37$) and velVI ($\rho = -0.28$); in
+the sci-fate metabolic-labeling dataset, where 4sU directly quantifies new/old RNA,
+$\rho$ reaches $-0.81$ (Fig.~\ref{fig:validation}A). Consistent with known
+\textit{cis}-regulatory determinants, $\gamma$ correlated positively with 3$'$~UTR length
+($\rho = 0.34$, $p < 10^{-200}$) and AU content ($\rho = 0.30$, $p < 10^{-150}$), and
+miRNA targets from TargetScan~8.0 were enriched among high-$\gamma$ genes for 59\% of 215
+tested families (Fig.~\ref{fig:validation}B; aggregate $p = 4.7 \times 10^{-65}$).
+Estimates are robust to cell subsampling ($r > 0.97$ at 20\%) and scale sub-linearly
+($\sim$91 seconds estimated for 100{,}000 cells).
 
 Clustering in $\gamma$-space revealed expression-invisible PT states in 3 of 8 pancreatic
-and 6 of 11 hippocampal cell types---subpopulations with distinct degradation programs
-yielding higher silhouette scores in $\gamma$-space than expression space
-(Fig.~\ref{fig:findings}A). In pancreas, the Epsilon cluster showed the strongest
-invisibility: its gamma sub-clusters had silhouette $= 0.215$ in $\gamma$-space but were
-actively anti-clustered in expression space (silhouette $= -0.011$). These invisible states
-were enriched for biologically coherent pathways via GSEA: ER protein processing and
-autophagy in pancreatic endocrine cells; synaptic plasticity and spliceosome in hippocampal
-neurons---pathways directly relevant to the known biology of secretory and neuronal cells.
+and 6 of 11 hippocampal cell types (Fig.~\ref{fig:findings}A)---subpopulations with
+distinct degradation programs that are undetectable by expression analysis and confirmed
+non-artifactual by zero-permutation control (ARI $\approx 0$). The Epsilon cluster showed
+the strongest invisibility: silhouette $= 0.215$ in $\gamma$-space versus $-0.011$ in
+expression space. These invisible states were enriched for tissue-appropriate pathways:
+ER stress and autophagy in pancreatic endocrine cells; synaptic plasticity and spliceosome
+in hippocampal neurons.
 
 \begin{figure}[h!]
 \centering
@@ -130,30 +127,26 @@ expression (blue) for 54\% of 1{,}472 transition genes ($p < 10^{-57}$), shown h
 \label{fig:findings}
 \end{figure}
 
-PT velocity---the neighbor-averaged $\gamma$ gradient---was orthogonal to RNA velocity
-(mean cosine similarity $\approx 0$) and demonstrated that degradation-rate changes
-temporally precede expression changes for a significant majority of transition genes during
-differentiation (Fig.~\ref{fig:findings}B): 54\% of 1{,}472 transition genes in pancreas
-($p < 10^{-57}$) and 78\% of 146 genes in dentate gyrus ($p = 9.9 \times 10^{-13}$),
-supporting the hypothesis that post-transcriptional regulation acts as an early signal
-during cell fate transitions.
-Library-size-corrected RBP--target network inference identified hub regulators including
-HNRNPA1, YBX1, and ELAVL1/HuR, whose functional importance was validated by DepMap CRISPR
-essentiality scores (hub RBPs significantly more essential; $p = 6.4 \times 10^{-5}$).
-Application to human neuroblastoma [4] revealed a predominantly stabilizing RBP
-landscape (66\% stabilizing edges after correction), contrasting sharply with the
-destabilizing bias observed in developmental tissues and consistent with oncogenic mRNA
-stabilization programs. Hub RBPs in neuroblastoma (HNRNPA2B1, PABPC1) matched known cancer
-dependencies [5].
+PT velocity---the neighbor-averaged $\gamma$ gradient---is orthogonal to RNA velocity
+(cosine similarity $\approx 0$) and reveals that degradation-rate changes temporally
+precede expression changes: 54\% of 1{,}472 transition genes in pancreas ($p < 10^{-57}$)
+and 78\% of 146 genes in dentate gyrus ($p = 9.9 \times 10^{-13}$;
+Fig.~\ref{fig:findings}B), implicating post-transcriptional rewiring as an early
+fate-commitment signal. Library-size-corrected RBP--target network inference identifies
+essential hub regulators (DepMap CRISPR; $p = 6.4 \times 10^{-5}$) including HNRNPA1,
+YBX1, and ELAVL1/HuR. Applied to human neuroblastoma [4], scPTR reveals a predominantly
+stabilizing RBP landscape (66\% stabilizing edges after correction)---contrasting sharply
+with the destabilizing bias in developmental tissues and consistent with oncogenic mRNA
+stabilization. Hub RBPs (HNRNPA2B1, PABPC1) match known cancer dependencies [5].
 
 \section*{Conclusions}
 
-scPTR reveals a systematic, previously inaccessible layer of post-transcriptional
-regulation in single-cell data. By treating mRNA degradation rates as per-cell observables,
-scPTR discovers expression-invisible cell states, demonstrates that post-transcriptional
-rewiring precedes transcriptional changes during fate transitions, and identifies
-functionally essential RBP regulators---establishing degradation-rate analysis as a
-complement to RNA velocity for single-cell biology.
+scPTR establishes mRNA degradation rates as a measurable, biologically informative axis of
+single-cell analysis. It outperforms existing methods at half-life prediction, uncovers
+expression-invisible post-transcriptional cell states, demonstrates that degradation-rate
+rewiring precedes transcriptional changes during fate commitment, and identifies
+functionally essential RBP regulatory networks---opening a previously inaccessible layer of
+post-transcriptional biology to systematic single-cell investigation.
 
 \vspace{3pt}
 \noindent\textbf{Availability:} \url{https://github.com/bryanc5864/scPTR}
