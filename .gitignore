@@ -37,3 +37,14 @@ Thumbs.db
 *.h5ad
 .pybiomart.sqlite
 .cache/
+
+# NeurIPS 2026 build/scratch artifacts
+err
+icml-extract/
+supplementary.zip
+neurips2026/*.aux
+neurips2026/*.bbl
+neurips2026/*.blg
+neurips2026/*.log
+neurips2026/*.out
+neurips2026/*.toc
