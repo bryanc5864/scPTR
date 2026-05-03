@@ -48,3 +48,11 @@ neurips2026/*.blg
 neurips2026/*.log
 neurips2026/*.out
 neurips2026/*.toc
+.supplementary-build/
+
+# Top-level scratch copies of the figure scripts (live in supplementary/code/repro/)
+/compute_fig1c_data.py
+/compute_real_figure_data.py
+/generate_figures.py
+/figures/
+/real_figure_data/

@@ -51,22 +51,28 @@ def fig1_method():
                            width_ratios=[1.1, 0.03, 0.85, 0.03, 1.8],
                            wspace=0.06, left=0.05, right=0.99)
 
-    # Panel A: Phase portrait
+    from pathlib import Path
+    DATA = Path("real_figure_data")
+
+    # Panel A: REAL phase portrait of a representative pancreas gene.
     ax_a = fig.add_subplot(gs[0, 0])
-    n = 400
-    s = np.random.exponential(2.0, n)
-    beta_true = 0.6
-    u = beta_true * s + np.random.normal(0, 0.4, n)
-    u = np.clip(u, 0, None)
-    gamma_vals = beta_true * u / np.maximum(s, 0.01)
-    sc = ax_a.scatter(s, u, c=gamma_vals, cmap="YlOrRd", s=10, alpha=0.7,
-                      edgecolors="none", vmin=0, vmax=1.0)
-    s_line = np.linspace(0, s.max(), 50)
-    ax_a.plot(s_line, beta_true * s_line, "k--", lw=1.8,
+    pp = np.load(DATA / "phase_portrait.npz", allow_pickle=True)
+    s_arr = pp["s"]; u_arr = pp["u"]; gamma_arr = pp["gamma"]
+    beta_g = float(pp["beta"]); gene_name = str(pp["gene"])
+    # Plot only cells where both u and s are non-zero (the kinetic ceiling).
+    nz = (s_arr > 0) & (u_arr > 0)
+    g_color = np.clip(gamma_arr[nz], 0,
+                       float(np.percentile(gamma_arr[nz], 99)) if nz.sum() else 1.0)
+    sc = ax_a.scatter(s_arr[nz], u_arr[nz], c=g_color, cmap="YlOrRd",
+                      s=10, alpha=0.75, edgecolors="none",
+                      vmin=0, vmax=g_color.max() if g_color.size else 1.0)
+    s_line = np.linspace(0, float(s_arr[nz].max()) if nz.sum() else 1.0, 50)
+    ax_a.plot(s_line, beta_g * s_line, "k--", lw=1.8,
               label=r"$\beta$ (95th %ile)")
     ax_a.set_xlabel("Spliced ($s$)", fontsize=11)
     ax_a.set_ylabel("Unspliced ($u$)", fontsize=11)
-    ax_a.set_title("Rate estimation", fontweight="bold", fontsize=12)
+    ax_a.set_title(f"Rate estimation ({gene_name})",
+                   fontweight="bold", fontsize=12)
     ax_a.legend(fontsize=9, loc="upper left", frameon=False)
     ax_a.text(-0.18, 1.05, "A", transform=ax_a.transAxes, fontsize=14,
               fontweight="bold")
@@ -74,27 +80,36 @@ def fig1_method():
     cb.set_label(r"$\gamma$", fontsize=11)
     cb.ax.tick_params(labelsize=8)
 
-    # Panel B: Expression vs Gamma UMAP
+    # Panel B: REAL full-pancreas expression UMAP vs gamma-space UMAP.
     gs_b = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs[0, 2], wspace=0.25)
+    pb = np.load(DATA / "panel_b_umaps.npz", allow_pickle=True)
+    expr_umap = pb["expr_umap"]
+    gamma_umap = pb["gamma_umap"]
+    cell_types = np.asarray(pb["cell_types"], dtype=str)
+    pt_states  = np.asarray(pb["pt_states"],  dtype=str)
 
-    theta = np.random.uniform(0, 2 * np.pi, 400)
-    r_expr = np.random.normal(0, 1.0, 400)
-    x_expr = r_expr * np.cos(theta)
-    y_expr = r_expr * np.sin(theta)
-    group = (np.sin(theta * 2) + np.random.normal(0, 0.3, 400)) > 0
-    x_gamma = x_expr + group * 3.5
-    y_gamma = y_expr + group * 0.5 + np.random.normal(0, 0.3, 400)
-    colors_g = [BLUE if g else ORANGE for g in group]
+    # Color expression UMAP by cell type, gamma UMAP by PT state.
+    unique_ct = sorted(set(cell_types))
+    ct_palette = dict(zip(unique_ct,
+                          plt.cm.tab10(np.linspace(0, 1, max(len(unique_ct), 1)))))
+    expr_colors = [ct_palette[c] for c in cell_types]
+
+    unique_pt = sorted(set(pt_states))
+    pt_palette = dict(zip(unique_pt,
+                          plt.cm.Set2(np.linspace(0, 1, max(len(unique_pt), 1)))))
+    gamma_colors = [pt_palette[p] for p in pt_states]
 
     ax_bl = fig.add_subplot(gs_b[0, 0])
-    ax_bl.scatter(x_expr, y_expr, c=GRAY, s=6, alpha=0.5, edgecolors="none")
+    ax_bl.scatter(expr_umap[:, 0], expr_umap[:, 1], c=expr_colors,
+                  s=4, alpha=0.6, edgecolors="none", rasterized=True)
     _hide_spines(ax_bl)
     ax_bl.set_xlabel("Expression\nspace", fontsize=10)
     ax_bl.text(-0.3, 1.05, "B", transform=ax_bl.transAxes, fontsize=14,
                fontweight="bold")
 
     ax_br = fig.add_subplot(gs_b[0, 1])
-    ax_br.scatter(x_gamma, y_gamma, c=colors_g, s=6, alpha=0.6, edgecolors="none")
+    ax_br.scatter(gamma_umap[:, 0], gamma_umap[:, 1], c=gamma_colors,
+                  s=4, alpha=0.6, edgecolors="none", rasterized=True)
     _hide_spines(ax_br)
     ax_br.set_xlabel(r"$\gamma$ space", fontsize=10)
 
