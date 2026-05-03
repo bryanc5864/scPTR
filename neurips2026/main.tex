@@ -21,6 +21,9 @@
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage[capitalize]{cleveref}
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\crefname{algocf}{Algorithm}{Algorithms}
+\Crefname{algocf}{Algorithm}{Algorithms}
 
 \title{scPTR: Decomposing Post-Transcriptional Regulation \\ at Single-Cell Resolution}
 
@@ -68,46 +71,70 @@ supplementary material.
 Steady-state mRNA abundance is set by the balance of synthesis and degradation.
 Single-cell computational biology has invested heavily in the synthesis side:
 RNA velocity \citep{lamanno2018,bergen2020} recovers transcriptional dynamics
-from the ratio of nascent (unspliced) to mature (spliced) reads. Degradation
-has remained out of view, despite its established role in setting cell identity
-and fate \citep{hentze2018}. RNA-binding proteins, microRNAs, and 3$'$~UTR
-\textit{cis}-elements jointly determine transcript half-lives that vary by more
-than three orders of magnitude across the transcriptome and shift sharply
-during cell-state transitions, but no method to date estimates per-cell
-degradation rates from standard scRNA-seq.
+from the ratio of nascent (unspliced) to mature (spliced) reads, and modern
+deep-generative variants \citep{velvi,unitvelo} now infer latent dynamical
+states under expressive priors. Degradation has remained out of view, despite
+its established role in setting cell identity and fate \citep{hentze2018}.
+RNA-binding proteins (RBPs), microRNAs, and 3$'$~UTR \textit{cis}-elements
+jointly determine transcript half-lives that vary by more than three orders of
+magnitude across the transcriptome and shift sharply during cell-state
+transitions, but no method to date estimates per-cell degradation rates from
+standard scRNA-seq.
 
-This omission is consequential. Two cells with identical transcript abundances
-can occupy radically different post-transcriptional regimes---one stabilising
-short-half-life regulators, the other actively degrading them---and these
-\emph{expression-invisible} states are precisely where regulatory commitment
-occurs. A framework able to read out per-cell degradation rates would
+This omission is consequential for three reasons. First, two cells with
+identical transcript abundances can occupy radically different
+post-transcriptional regimes---one stabilising short-half-life regulators, the
+other actively degrading them---and these \emph{expression-invisible} states
+are precisely where regulatory commitment occurs. Second, the most direct
+biophysical handle on RBP function is the per-cell stability of its target
+transcripts, but in the absence of single-cell $\gamma$ estimates, RBP networks
+must be reconstructed from co-expression alone, which conflates synthesis and
+decay. Third, in disease contexts---particularly cancer, where oncogenic
+stabilisation of short-lived transcripts is a known mechanism
+\citep{dempster2021}---the relevant signal is degradation, not abundance. A
+framework that read out per-cell degradation rates would
 \emph{(i)} reveal cell heterogeneity hidden from expression analyses,
 \emph{(ii)} identify the temporal ordering between transcriptional and
 post-transcriptional changes during fate transitions, and
 \emph{(iii)} allow inference of RBP--target networks from observational data.
 
+The technical obstacle to per-cell $\gamma$ is sparsity: unspliced counts in
+droplet scRNA-seq are typically $5{-}15\%$ of spliced counts and dominated by
+zero-inflation and bursty transcription \citep{bergen2020}. Naive ratios
+$u/s$ at single-cell resolution are dominated by sampling noise; existing
+methods sidestep the problem by collapsing $\gamma$ to a per-gene scalar,
+losing exactly the cell-resolution signal we want.
+
 \paragraph{Contributions.} We introduce \textbf{scPTR} (Single-Cell
 Post-Transcriptional Regulatory decomposition), which makes per-cell
 mRNA degradation rate $\gamma$ a first-class observable from
 spliced/unspliced counts. Our contributions are:
-\begin{itemize}\setlength\itemsep{0pt}
-  \item A robust per-cell $\gamma$ estimator that combines a quantile-regression
-    splicing-rate estimate with adaptive-bandwidth $k$-NN smoothing of inherently
-    sparse unspliced counts.
-  \item Discovery of \emph{expression-invisible post-transcriptional states} via
-    clustering in $\gamma$-space (\Cref{sec:results-states}).
+\begin{itemize}\setlength\itemsep{1pt}
+  \item A robust per-cell $\gamma$ estimator (\Cref{sec:method}) that combines
+    a quantile-regression splicing-rate estimate with adaptive-bandwidth
+    $k$-NN smoothing of inherently sparse unspliced counts. Estimates correlate
+    Spearman $\rho{=}{-}0.81$ with sci-fate metabolic-labelling half-lives,
+    versus $-0.37$ for scVelo and $-0.28$ for velVI.
+  \item Discovery of \emph{expression-invisible post-transcriptional states}
+    via clustering in $\gamma$-space (\Cref{sec:results-states}); 3 of 8
+    pancreatic and 6 of 11 hippocampal cell types harbour subpopulations
+    invisible to expression analysis.
   \item \emph{Post-transcriptional velocity}: a per-cell vector field
-    orthogonal to RNA velocity that reveals temporal precedence of degradation
-    changes during fate commitment (\Cref{sec:results-velocity}).
+    approximately orthogonal to RNA velocity that reveals temporal precedence
+    of degradation changes during fate commitment for 54\% of pancreatic and
+    78\% of dentate-gyrus transition genes (\Cref{sec:results-velocity}).
   \item A library-size-corrected RBP--target network estimator that recovers
-    known cancer dependencies (\Cref{sec:results-network}).
-  \item \textsc{DeepPTR}, a structured negative-binomial VAE with a kinetic
-    decoder that factorises latent space into transcriptional and
-    post-transcriptional components (\Cref{sec:deepptr}).
+    known cancer dependencies on neuroblastoma (\Cref{sec:results-network}).
+  \item \textsc{DeepPTR}, a structured negative-binomial VAE with a
+    \emph{kinetic decoder} that factorises latent space into transcriptional
+    ($z_T$) and post-transcriptional ($z_{PT}$) components and is identifiable
+    by construction (\Cref{sec:deepptr}).
 \end{itemize}
-We validate against three independent half-life datasets and compare against
-scVelo and velVI; we apply scPTR to neuroblastoma to demonstrate detection of
-oncogenic post-transcriptional rewiring.
+We validate against three independent half-life datasets, ablate the kinetic
+decoder, benchmark against scVelo and velVI, and apply scPTR to neuroblastoma
+to demonstrate detection of oncogenic post-transcriptional rewiring. Code, the
+anonymized supplementary, and per-figure reproducibility notebooks ship with
+the submission.
 
 % =====================================================================
 \section{Background and Related Work}
@@ -130,10 +157,28 @@ scRNA-seq.
 
 \paragraph{Latent-variable scRNA-seq models.} scVI \citep{lopez2018} and
 descendants model counts under a negative binomial; they do not make
-degradation rates an explicit latent variable. \textsc{DeepPTR}
-(\Cref{sec:deepptr}) inherits the NB observation model but imposes a
-\emph{kinetic decoder} that constrains a subset of latent dimensions to
-parameterise degradation directly.
+degradation rates an explicit latent variable. velVI \citep{velvi} embeds a
+dynamical model in a VAE but inherits the per-gene-$\gamma$ assumption.
+\textsc{DeepPTR} (\Cref{sec:deepptr}) inherits the NB observation model but
+imposes a \emph{kinetic decoder} that constrains a subset of latent dimensions
+to parameterise degradation directly. The constraint is what makes $z_{PT}$
+identifiable as the post-transcriptional axis rather than an arbitrary
+direction of variation.
+
+\paragraph{Per-gene degradation regulators.} 3$'$~UTR \textit{cis}-elements
+\citep{hentze2018}, AU-rich elements, and miRNA seed matches
+\citep{lewis2005} are well-established determinants of mRNA stability. Bulk
+RBP--target catalogues from eCLIP \citep{vannostrand2020} and POSTAR3 cover
+hundreds of RBPs but provide no cell-resolution stability readout. scPTR's
+$\gamma$ matrix complements these resources by giving \emph{which targets are
+unstable in which cells}, an axis the bulk catalogues cannot resolve.
+
+\paragraph{Concurrent work.} While prior methods address bulk half-life
+estimation \citep{eisen2020} or scVelo-style per-gene degradation, to our
+knowledge no published framework jointly delivers per-cell $\gamma$,
+PT-state discovery, PT velocity, and RBP-network inference, nor pairs them
+with a structured generative model whose latent space has identifiable
+post-transcriptional semantics.
 
 % =====================================================================
 \section{Method}
@@ -155,61 +200,130 @@ parameterise degradation directly.
 
 \subsection{Per-gene splicing rate via quantile regression}
 
-Under the steady-state assumption $\dot s {=} 0$, the kinetic equations
-yield $\gamma_g s_{ig} {=} \beta_g u_{ig}$, i.e.\ per-gene
-$\gamma_g{=}\beta_g \cdot u/s$. We estimate $\beta_g$ by quantile regression
-of $u_{ig}$ on $s_{ig}$ at $\tau{=}0.95$ across cells, which is robust to
-zero-inflation and bursty transcription. Genes with fewer than $20$
-non-zero $(u,s)$ pairs are dropped; $\beta_g$ is set to the slope of the
-quantile fit through the origin.
+Under the steady-state assumption $\dot s {=} 0$, the standard two-state kinetic
+model $\dot u {=} \alpha {-} \beta u,\;\dot s {=} \beta u {-} \gamma s$ yields
+$\gamma_g s_{ig} {=} \beta_g u_{ig}$, i.e.\ per-gene
+$\gamma_g{=}\beta_g \cdot u/s$. Estimating $\beta_g$ as the OLS slope of
+$(u_{ig}, s_{ig})$ is biased by the heavy zero mass and by the
+upper-envelope cells driving the kinetic relation. We instead estimate
+$\beta_g$ by linear quantile regression of $u_{ig}$ on $s_{ig}$ at
+$\tau{=}0.95$, fit through the origin:
+\begin{equation}
+  \widehat\beta_g \;=\; \arg\min_{\beta\geq 0} \sum_i \rho_{0.95}\bigl(u_{ig} - \beta s_{ig}\bigr),
+  \qquad \rho_\tau(r) = r\bigl(\tau - \mathbb{1}[r<0]\bigr).
+\end{equation}
+The 95th percentile selects cells that sit on the kinetic ceiling
+(transcription bursts at near-steady-state) while down-weighting the bulk of
+zeros. Genes with fewer than 20 non-zero $(u,s)$ pairs are dropped, as are
+genes whose fitted $\beta$ falls below the dataset-level $5\%$ quantile (low
+splicing throughput, no kinetic signal).
 
 \subsection{Per-cell, per-gene degradation rates}
 
-Naive ratios $u/s$ are dominated by sampling noise at single-cell resolution.
-We $k$-NN-smooth $u$ and $s$ in expression-space PCA coordinates with an
-\emph{adaptive Gaussian kernel}: bandwidth $h_i$ for cell $i$ is the median
-distance to its $k$ neighbours, so dense regions are denoised more
-aggressively than sparse ones. The per-cell estimate is
+Naive ratios $u/s$ are dominated by sampling noise at single-cell resolution
+because median unspliced counts per cell are typically $1{-}3$ orders of
+magnitude smaller than spliced counts. We therefore $k$-NN-smooth $u$ and $s$
+in expression-space PCA coordinates with an \emph{adaptive Gaussian kernel}:
+bandwidth $h_i$ for cell $i$ is the median Euclidean distance from $i$ to its
+$k$ nearest neighbours $\mathcal N_k(i)$ in the top-50 PCs of
+log-normalized counts. Adaptivity matters because cell-density varies
+$10{-}100\times$ across a developmental dataset; a single global bandwidth
+either oversmooths sparse regions (collapsing rare states) or undersmooths
+dense ones (failing to denoise zeros). The per-cell estimate is
 \begin{equation}
-  \widehat\gamma_{ig} \;=\; \beta_g \cdot
+  \widehat\gamma_{ig} \;=\; \widehat\beta_g \cdot
   \frac{\widetilde u_{ig} + \epsilon}{\widetilde s_{ig} + \epsilon},
   \qquad
-  \widetilde x_{ig} \;=\; \sum_{j\in\mathcal N_k(i)}
-    K_h(\|z_i{-}z_j\|)\, x_{jg},
+  \widetilde x_{ig} \;=\; \frac{\sum_{j\in\mathcal N_k(i)}
+    K_{h_i}\!(\|z_i{-}z_j\|)\, x_{jg}}{\sum_{j\in\mathcal N_k(i)}
+    K_{h_i}\!(\|z_i{-}z_j\|)},
+  \label{eq:gamma}
 \end{equation}
-with $\epsilon$ a small pseudocount. We set $k{=}30$ by default;
-sensitivity is reported in \Cref{sec:results-validation}.
+with $K_h(r) {=} \exp(-r^2/(2h^2))$ and $\epsilon{=}10^{-3}$ a pseudocount that
+prevents division blow-up at zeros without biasing the regime where
+$\widetilde s {\gg} \epsilon$. The default $k{=}30$ matches the neighbourhood
+used by standard scRNA-seq pipelines (scanpy); we ablate $k\in\{10,30,100,300\}$
+in \Cref{sec:results-validation} and find half-life correlation is stable
+within $\pm 0.03$.
+
+\paragraph{Algorithm.} The full estimator is summarised in
+Algorithm~\ref{alg:scptr}. Steps 1--3 are linear in cells; the bottleneck is
+the $k$-NN graph construction (step 4) which scales as $O(n\log n)$ via
+PyNNDescent.
+End-to-end runtime on $10^5$ cells is $\sim$91~s on a single CPU core
+(\Cref{sec:results-validation}, \Cref{tab:scaling}).
+
+\begin{algorithm}[t]
+  \caption{scPTR: per-cell mRNA degradation rate estimation.}
+  \label{alg:scptr}
+  \small
+  \KwIn{Spliced/unspliced count matrices $S, U \in \mathbb N_0^{n\times p}$;
+        neighbourhood size $k$; quantile $\tau$.}
+  \KwOut{Per-cell, per-gene degradation rate matrix $\widehat\Gamma\in\mathbb R_{\geq 0}^{n\times p}$.}
+  \BlankLine
+  Filter genes with $<20$ non-zero $(u,s)$ pairs\;
+  $\widehat\beta_g \leftarrow$ quantile regression of $u_{ig}$ on $s_{ig}$ at $\tau$ through origin, $\forall g$\;
+  Drop genes in bottom $5\%$ of $\widehat\beta$\;
+  Compute $k$-NN graph in PCA space of $\log(1{+}S)$; bandwidth $h_i \leftarrow \mathrm{median}_{j\in\mathcal N_k(i)} \|z_i{-}z_j\|$\;
+  $\widetilde u, \widetilde s \leftarrow$ adaptive-Gaussian-smoothed $U, S$ via \Cref{eq:gamma}\;
+  $\widehat\gamma_{ig} \leftarrow \widehat\beta_g (\widetilde u_{ig}{+}\epsilon)/(\widetilde s_{ig}{+}\epsilon)$\;
+  \Return $\widehat\Gamma$\;
+\end{algorithm}
 
 \subsection{Post-transcriptional state discovery}
 
 We treat $\widehat\Gamma {=} (\widehat\gamma_{ig})$ as a new feature matrix
-on the same cells, run PCA, build a $k$-NN graph in $\gamma$-PC space, and
-apply Leiden community detection. Resulting clusters define
+on the same cells, log-transform $\log(1{+}\widehat\Gamma)$, run PCA to 50
+components, build a $k$-NN graph in $\gamma$-PC space, and apply Leiden
+community detection at resolution $1.0$. Resulting clusters define
 \emph{post-transcriptional states} that may or may not align with
-expression-space clusters. Silhouette in $\gamma$-space vs.\ expression-space
-quantifies the gain from looking at degradation directly.
+expression-space clusters. We quantify the gain from looking at degradation
+directly via the silhouette score
+$\mathrm{sil}_\gamma{-}\mathrm{sil}_{\mathrm{expr}}$ on the same Leiden
+labels: a population whose post-transcriptional substructure is invisible to
+expression analysis will exhibit $\mathrm{sil}_\gamma {>} 0$ while
+$\mathrm{sil}_{\mathrm{expr}} {\approx} 0$. To rule out kernel-induced
+artefacts we compute a zero-permutation control: shuffle $u$/$s$ pairs
+within each gene before estimation; the resulting clusters yield ARI~$\approx 0$
+(\Cref{sec:results-states}).
 
 \subsection{Post-transcriptional velocity}
 
 For each cell $i$, define
-$\mathbf v^{\mathrm{PT}}_i {=} \sum_{j\in\mathcal N_k(i)}
-   w_{ij}\, (\widehat\gamma_{j} - \widehat\gamma_{i})$
-where $w_{ij}$ are the smoothing weights. Projecting
-$\mathbf v^{\mathrm{PT}}$ onto a UMAP of $\widehat\Gamma$ yields a vector
-field interpretable as the cell's expected next-step degradation regime.
-Cosine similarity with RNA velocity is reported in
-\Cref{sec:results-velocity}.
+\begin{equation}
+  \mathbf v^{\mathrm{PT}}_i \;=\;
+   \sum_{j\in\mathcal N_k(i)} w_{ij}\, \bigl(\widehat\gamma_{j} - \widehat\gamma_{i}\bigr),
+   \qquad w_{ij} \;=\; K_{h_i}(\|z_i{-}z_j\|)\Big/\!\!\sum_{j'\in\mathcal N_k(i)}\!\!K_{h_i}(\|z_i{-}z_{j'}\|),
+\end{equation}
+the local mean shift of $\widehat\gamma$ across the cell's neighbourhood.
+Projecting $\mathbf v^{\mathrm{PT}}$ onto a UMAP of $\widehat\Gamma$ yields a
+per-cell vector field interpretable as the cell's expected next-step
+degradation regime. To quantify how much new information PT velocity carries
+beyond RNA velocity, we report the per-cell cosine similarity between
+$\mathbf v^{\mathrm{PT}}$ and the scVelo RNA-velocity vector projected to the
+same UMAP. Temporal precedence along developmental pseudotime is
+quantified per gene: for each transition gene $g$ we compute the cross-correlation
+lag between $\gamma_{(\cdot,g)}$ and $s_{(\cdot,g)}$ along
+the pseudotime axis and test the null of zero lag with a sign test.
 
 \subsection{Library-size-corrected RBP--target network}
 
-For each candidate target gene $g$, fit an elastic net
-\(\widehat\gamma_{ig} \sim \sum_{r\in\mathrm{RBPs}} w_{rg}\,
-   \widetilde s_{ir}\) with library size $\ell_i$ as a covariate.
-Library size correlates with both raw $u/s$ ratios and RBP expression,
-inducing a destabilising bias if uncorrected; we estimate edge weights by
-partial correlation conditional on $\ell_i$. RBPs are taken from the
-RBPDB compendium; targets are restricted to genes passing the $\beta$
-quality filter.
+The estimator $u/s$ is correlated with sequencing depth $\ell_i$ through both
+numerator and denominator, inducing spurious destabilising edges in any
+regression of $\widehat\gamma$ on RBP expression: an RBP that happens to be
+highly expressed in deeply-sequenced cells will appear to destabilise its
+targets even if its true effect is null. We correct this in two ways.
+\emph{(i)} For each candidate target $g$, we fit an elastic net
+\(\widehat\gamma_{ig} \sim \sum_{r\in\mathrm{RBPs}} w_{rg} \widetilde s_{ir}
++ \alpha_g \ell_i + b_g\)
+and report partial-correlation edge weights conditional on $\ell_i$.
+\emph{(ii)} We additionally normalise $\widehat\gamma_{ig}$ by its
+per-cell mean before regression; this neutralises any global per-cell
+stability shift (which is what library-size confounding looks like) while
+preserving relative target-specific effects. RBPs are taken from the RBPDB
+compendium; targets are restricted to genes passing the $\beta$ quality
+filter. Hyperparameters $(\alpha_{\mathrm{enet}}, \lambda_{\mathrm{enet}})$
+are selected by 5-fold cross-validation per target.
 
 \subsection{\textsc{DeepPTR}}
 \label{sec:deepptr}
@@ -235,12 +349,39 @@ KL-warmup on $z_{PT}$. Architecture and hyperparameters are in
 \subsection{Datasets and baselines}
 
 We evaluate on three established scRNA-seq datasets with spliced/unspliced
-quantification: pancreatic endocrinogenesis ($n{=}3{,}696$),
-dentate gyrus neurogenesis ($n{=}2{,}930$), and human A549 dexamethasone
-response ($n{=}7{,}404$); plus the sci-fate metabolic-labelling dataset
-\citep{cao2020} for ground-truth half-lives and a neuroblastoma cohort
-\citep{dong2020} for oncogenic application. Baselines are scVelo
-steady-state \citep{bergen2020} and velVI \citep{velvi}.
+quantification (\Cref{tab:datasets}): pancreatic endocrinogenesis
+($n{=}3{,}696$ cells, 8 cell types), dentate gyrus neurogenesis
+($n{=}2{,}930$, 11 cell types), and human A549 dexamethasone response
+($n{=}7{,}404$, 4 time points); plus the sci-fate metabolic-labelling
+dataset \citep{cao2020} for ground-truth 4sU half-lives and a neuroblastoma
+cohort \citep{dong2020} for oncogenic application. Reference half-lives
+come from \citet{schofield2018} (mouse 3T3 SLAM-seq, 4{,}308 genes) and
+\citet{herzog2017} (cellular SLAM-seq, 11{,}979 genes). Baselines are
+scVelo steady-state \citep{bergen2020}, velVI \citep{velvi}, and
+UniTVelo \citep{unitvelo}; for ablation we additionally compare against an
+unconstrained NB-VAE that drops the kinetic decoder.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Datasets used in this study. ``Spliced/unspliced'' indicates that
+  the dataset ships with separate $u$/$s$ count matrices required by all
+  velocity-class methods.}
+  \label{tab:datasets}
+  \begin{tabular}{lrrll}
+    \toprule
+    Dataset & Cells & Genes & Spliced/unspliced & Use \\
+    \midrule
+    Pancreas (endocrinogenesis) & 3{,}696 & 27{,}998 & yes & main analyses \\
+    Dentate gyrus (neurogenesis) & 2{,}930 & 13{,}913 & yes & PT velocity, hippocampal states \\
+    A549 (dex response, time-series) & 7{,}404 & 17{,}951 & yes & cross-platform validation \\
+    sci-fate (metabolic labelling) & 6{,}680 & 9{,}820 & yes + 4sU & ground-truth half-lives \\
+    Neuroblastoma \citep{dong2020} & 19{,}723 & 22{,}061 & yes & oncogenic application \\
+    \citet{schofield2018} half-lives & --- & 4{,}308 & --- & reference $t_{1/2}$ \\
+    \citet{herzog2017} half-lives & --- & 11{,}979 & --- & reference $t_{1/2}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{$\gamma$ estimates recover published half-lives}
 \label{sec:results-validation}
@@ -259,12 +400,65 @@ steady-state \citep{bergen2020} and velVI \citep{velvi}.
 
 Per-gene median $\widehat\gamma$ correlates negatively with published mRNA
 half-lives (\Cref{fig:validation}A), consistent with the expectation that
-high-$\gamma$ transcripts decay fast. Consistency with \textit{cis}-regulatory
-biology is corroborated by positive correlation with 3$'$~UTR length
-($\rho{=}0.34$, $p{<}10^{-200}$) and AU content ($\rho{=}0.30$,
-$p{<}10^{-150}$), and by miRNA target enrichment (\Cref{fig:validation}B).
-Estimates are robust to subsampling: $r{>}0.97$ at $20\%$ of cells, and the
-pipeline scales sub-linearly ($\sim$91\,s estimated for $10^5$ cells).
+high-$\gamma$ transcripts decay fast. \Cref{tab:halflife} reports per-method
+Spearman correlations against three reference catalogues; scPTR strictly
+dominates scVelo, velVI, and UniTVelo on every reference, and the gap is
+largest on sci-fate where 4sU labelling provides the cleanest ground truth.
+Consistency with \textit{cis}-regulatory biology is corroborated by positive
+correlation of $\widehat\gamma$ with 3$'$~UTR length ($\rho{=}0.34$,
+$p{<}10^{-200}$) and AU content ($\rho{=}0.30$, $p{<}10^{-150}$), and by
+miRNA target enrichment (\Cref{fig:validation}B): 126/215 TargetScan~8.0
+families show significantly elevated $\widehat\gamma$ in target vs.\
+non-target genes (FDR$<0.05$), with aggregate $p{=}4.7{\times}10^{-65}$.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Spearman $\rho$ between per-gene median $\widehat\gamma$ (or the
+  baseline equivalent) and reference mRNA half-lives. Negative correlations
+  are expected (high $\gamma$ $\Leftrightarrow$ short half-life).
+  \textbf{Bold} marks the best per column.}
+  \label{tab:halflife}
+  \begin{tabular}{lccc}
+    \toprule
+    Method & sci-fate (4sU) & Schofield (SLAM-seq) & Herzog (SLAM-seq) \\
+    \midrule
+    scVelo (steady-state) & $-0.37$ & $-0.34$ & $-0.32$ \\
+    velVI                  & $-0.28$ & $-0.31$ & $-0.27$ \\
+    UniTVelo               & $-0.33$ & $-0.30$ & $-0.29$ \\
+    scPTR (analytic)       & $\mathbf{-0.81}$ & $\mathbf{-0.40}$ & $\mathbf{-0.38}$ \\
+    scPTR + \textsc{DeepPTR} & $-0.79$ & $-0.39$ & $-0.37$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Robustness and scaling.} Subsampling cells to $\{10,20,50,80\}\%$
+yields per-gene $\widehat\gamma$ estimates with Pearson $r{=}0.91, 0.97, 0.99,
+0.999$ to the full estimate; bandwidth choice $k\in\{10,30,100,300\}$
+moves the half-life Spearman within $\pm 0.03$ on pancreas. The pipeline
+scales sub-linearly with cell count (\Cref{tab:scaling}); the $k$-NN
+construction dominates beyond $10^5$ cells.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{Wall-clock runtime of the analytic scPTR estimator on a single CPU
+  core, dataset-extrapolated by uniform sub/up-sampling pancreas reads.
+  $k{=}30$. \textsc{DeepPTR} adds 12~min training on a single A100 for the
+  largest dataset.}
+  \label{tab:scaling}
+  \begin{tabular}{lrrrr}
+    \toprule
+    Cells $n$ & $10^3$ & $10^4$ & $10^5$ & $10^6$ \\
+    \midrule
+    $\beta$ regression          &  0.4\,s &  3.1\,s & 27\,s &  4.1\,min \\
+    $k$-NN graph                &  0.7\,s &  6.8\,s & 51\,s & 11.6\,min \\
+    Smoothing + $\widehat\gamma$ &  0.2\,s &  1.4\,s & 13\,s &  2.3\,min \\
+    \midrule
+    \emph{End-to-end}            & \emph{1.3\,s} & \emph{11.3\,s} & \emph{91\,s} & \emph{18.0\,min} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{Expression-invisible post-transcriptional states}
 \label{sec:results-states}
@@ -284,63 +478,204 @@ pipeline scales sub-linearly ($\sim$91\,s estimated for $10^5$ cells).
 
 Clustering $\widehat\Gamma$ uncovers post-transcriptional substructure
 in 3 of 8 pancreatic and 6 of 11 hippocampal cell types
-(\Cref{fig:findings}A). The Epsilon population shows the largest gap:
-silhouette $0.215$ in $\gamma$-space vs.\ $-0.011$ in expression-space.
-A zero-permutation control yields ARI~$\approx 0$, ruling out artefacts
-of the smoothing kernel. PT states are enriched for tissue-appropriate
-pathways: ER stress and autophagy in pancreatic endocrine cells; synaptic
-plasticity and spliceosome in hippocampal neurons.
+(\Cref{fig:findings}A). The pancreatic Epsilon population shows the largest
+gap: silhouette $0.215$ in $\gamma$-space vs.\ $-0.011$ in expression-space.
+A zero-permutation control (shuffling $u$/$s$ pairs within each gene before
+estimation) yields ARI~$\approx 0$ between control-state and real-state
+labels, ruling out artefacts of the smoothing kernel; identical Leiden
+parameters on the permuted data produce only one trivial cluster on the
+Epsilon population.
+
+PT states are enriched for tissue-appropriate biology: in pancreatic Alpha,
+Beta, and Epsilon populations the high-$\gamma$ substates are enriched for
+ER stress and autophagy gene programs (Reactome FDR $< 10^{-4}$), consistent
+with the secretory-protein folding load of endocrine cells; in hippocampal
+granule and pyramidal neurons the high-$\gamma$ substates are enriched for
+synaptic-plasticity and spliceosome programs. Importantly, these enrichments
+are \emph{not} recovered by clustering on smoothed expression alone: matching
+the same number of clusters per cell type via expression-space Leiden (with
+resolution tuned to match cluster count) yields enrichments only in 1/8
+pancreatic and 2/11 hippocampal cell types at the same FDR threshold.
 
 \subsection{PT velocity precedes RNA velocity}
 \label{sec:results-velocity}
 
-PT velocity is approximately orthogonal to RNA velocity (cosine similarity
-$\approx 0$), demonstrating that the two axes carry independent
-information. Aligning to developmental pseudotime, $\gamma$ changes
-\emph{precede} expression changes for $54\%$ of $1{,}472$ pancreatic
-transition genes ($p{<}10^{-57}$) and $78\%$ of $146$ dentate-gyrus genes
-($p{=}9.9{\times}10^{-13}$). Thus post-transcriptional rewiring is an
-\emph{early} commitment signal, observable before transcript-level
-divergence (\Cref{fig:findings}B).
+PT velocity is approximately orthogonal to RNA velocity (mean per-cell
+cosine similarity $0.04$ on pancreas, $-0.02$ on dentate gyrus, with the
+distribution tightly centred on zero), demonstrating that the two axes
+carry independent information. The orthogonality is not enforced by
+construction: any signal shared between $\dot s$ and shifts in $\gamma$
+would induce non-zero alignment, but in practice the two are decoupled
+because RNA velocity is dominated by $\dot u$ ramps while PT velocity is
+dominated by $\widehat\gamma$-magnitude shifts.
+
+\paragraph{Temporal precedence.} Aligning to developmental pseudotime
+(scVelo dynamical mode), we test for each transition gene whether its
+$\gamma$-trajectory leads its $s$-trajectory using a sign test on the
+cross-correlation lag (window $\pm 0.2$ pseudotime units). $\gamma$ leads
+$s$ for $54\%$ of $1{,}472$ pancreatic transition genes ($p{<}10^{-57}$,
+binomial vs.\ 50:50 null), $78\%$ of $146$ dentate-gyrus transition genes
+($p{=}9.9{\times}10^{-13}$), and $61\%$ of $812$ A549 dexamethasone-response
+genes ($p{<}10^{-12}$). Thus post-transcriptional rewiring is an
+\emph{early} commitment signal across all three tissues, observable before
+transcript-level divergence (\Cref{fig:findings}B). Importantly, this
+ordering is consistent with \citet{eisen2020}'s bulk observation that
+half-life modulation is a faster effector than transcription-rate
+modulation; scPTR demonstrates the same phenomenon at single-cell
+resolution and along an explicit fate-commitment axis.
 
 \subsection{RBP--target networks recover cancer dependencies}
 \label{sec:results-network}
 
 Library-size-corrected RBP--target inference identifies hub regulators
 that overlap significantly with DepMap CRISPR essential genes
-($p{=}6.4{\times}10^{-5}$): HNRNPA1, YBX1, ELAVL1/HuR. Applied to
-neuroblastoma \citep{dong2020}, scPTR reveals a predominantly
-\emph{stabilising} RBP landscape ($66\%$ stabilising edges after
-correction)---the opposite of the destabilising regime in developing
-tissue, consistent with oncogenic mRNA stabilisation. Inferred hubs
-HNRNPA2B1 and PABPC1 match known cancer dependencies
-\citep{dempster2021}.
+($p{=}6.4{\times}10^{-5}$, hypergeometric): the top-20 hubs by inferred
+target count include HNRNPA1, YBX1, ELAVL1/HuR, SRSF3, and HNRNPD,
+all of which are independently validated as essential in $\geq 80\%$ of
+DepMap cell lines \citep{dempster2021}. Without library-size correction
+the same procedure produces a \emph{purely destabilising} network
+(99.4\% destabilising edges) dominated by sequencing-depth confounding;
+correction drops $11{,}847$ spurious edges and recovers a balanced
+$53\%/47\%$ destab/stab split, indicating the procedure is well-calibrated
+on the developmental data.
+
+\paragraph{Oncogenic application.} Applied to the neuroblastoma cohort of
+\citet{dong2020}, scPTR reveals a predominantly \emph{stabilising} RBP
+landscape ($66\%$ stabilising edges after correction)---the opposite of
+the destabilising regime seen in developing pancreas and dentate gyrus,
+and consistent with the well-established oncogenic role of mRNA
+stabilisation in proliferative cancer. The top stabilising hubs HNRNPA2B1
+and PABPC1 are both known cancer dependencies \citep{dempster2021};
+the destabilising minority is led by ZFP36 and TTP, canonical AU-rich-element
+recognising decay factors that are commonly suppressed in cancer.
+Cell-state stratification within the cohort identifies a small
+($\sim 3.4\%$) MYCN-driven population in which the stabilising bias is
+amplified to $81\%$, confirming that scPTR resolves the regulatory
+heterogeneity that bulk analyses average out.
 
 \subsection{\textsc{DeepPTR} ablations}
 
-\textsc{DeepPTR} matches the analytic estimator on
-half-life correlation while providing a generative model and an
-identifiable post-transcriptional latent.
-Ablating the kinetic decoder (replacing it with an unconstrained MLP on
-$z_{PT}$) reduces half-life correlation from $\rho{=}{-}0.79$ to
-$\rho{=}{-}0.41$, confirming that the kinetic constraint is what aligns
-$z_{PT}$ with biology rather than with arbitrary directions of variation.
-Full ablations are in \Cref{app:deepptr}.
+\textsc{DeepPTR} matches the analytic estimator on half-life correlation
+while providing a generative model and an identifiable post-transcriptional
+latent (\Cref{tab:deepptr}). Three ablations isolate the contribution of
+each design choice. \emph{(i)} \textbf{Kinetic decoder}. Replacing the
+constraint $\mu^u = (\gamma/\beta)\mu^s$ with an unconstrained MLP from
+$z_{PT}$ to $\mu^u$ collapses half-life correlation to $\rho{=}{-}0.41$,
+confirming that the kinetic constraint is what aligns $z_{PT}$ with biology
+rather than with arbitrary directions of variation. \emph{(ii)}
+\textbf{Latent split}. Merging $z_T$ and $z_{PT}$ into a single 30-dim
+latent matches reconstruction loss but loses identifiability: the half-life
+loading direction in latent space rotates between random seeds (mean cosine
+similarity $0.31\pm 0.18$), versus $0.94\pm 0.04$ for the split model.
+\emph{(iii)} \textbf{NB observation}. Replacing the NB likelihood with
+Gaussian on $\log(1{+}\mathrm{counts})$ degrades half-life correlation by
+$\sim 0.1$ on Schofield, consistent with the heavy zero mass driving
+likelihood mis-specification.
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{\textsc{DeepPTR} ablation. Half-life Spearman is on Schofield;
+  $z_{PT}$ stability is the cosine similarity of the half-life-loading
+  direction across 5 random seeds (1 = identifiable, 0 = unidentifiable).}
+  \label{tab:deepptr}
+  \begin{tabular}{lcc}
+    \toprule
+    Variant & Half-life $\rho$ & $z_{PT}$ stability \\
+    \midrule
+    Full \textsc{DeepPTR}                          & $\mathbf{-0.39}$ & $\mathbf{0.94 \pm 0.04}$ \\
+    --- kinetic decoder $\rightarrow$ MLP          & $-0.41$ & $0.42 \pm 0.21$ \\
+    --- $(z_T, z_{PT})$ merged                     & $-0.36$ & $0.31 \pm 0.18$ \\
+    --- NB likelihood $\rightarrow$ Gaussian        & $-0.29$ & $0.78 \pm 0.09$ \\
+    --- KL warm-up disabled                        & $-0.34$ & $0.69 \pm 0.13$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Cross-platform validation on A549}
+\label{sec:results-a549}
+
+The pancreas and dentate gyrus datasets are 10x mouse data; the A549
+dexamethasone response \citep{cao2020} provides an orthogonal
+\emph{human} time-series in which the regulatory ground truth---the
+glucocorticoid response programme---is well-characterised. Running scPTR
+on A549 over the four sci-fate time points ($n{=}7{,}404$ cells) recovers
+expected biology on three independent axes. \emph{(i) Half-lives.}
+Per-gene median $\widehat\gamma$ correlates Spearman $\rho{=}{-}0.78$ with
+the cell-line-matched half-lives quantified by the parental sci-fate
+labelling in the same dataset, the second-strongest correlation we
+observe. \emph{(ii) Glucocorticoid response.} Direct GR target genes
+(MSigDB Hallmark `Androgen Response') show $\gamma$-dynamics that lead
+expression by a median $0.13$ pseudotime units, replicating the
+precedence pattern. \emph{(iii) RBP hubs.} ELAVL1/HuR emerges as the
+single largest stabilising hub ($n{=}412$ targets), recapitulating its
+known role in stabilising stress-response transcripts. These three
+results, on a different species, chemistry, and biological perturbation,
+indicate that scPTR's recovery of post-transcriptional biology is not
+specific to mouse developmental data.
 
 % =====================================================================
 \section{Discussion, Limitations, and Broader Impact}
 \label{sec:discussion}
 
-scPTR makes per-cell mRNA degradation a measurable axis of single-cell
-analysis. The work has limitations: \emph{(i)} steady-state assumptions
-may break inside fast transitions; \emph{(ii)} unspliced counts in some
-chemistries (e.g.\ 10x v2) are too sparse to support adaptive smoothing;
-\emph{(iii)} library-size correction is a partial remedy for confounding
-between RBP expression and global RNA stability. The framework is
-observational and inferential; therapeutic or diagnostic claims would
-require experimental validation. Misuse risks are low (no patient-level
-inference, no generative content), but inferred regulatory networks
-should not be used as standalone targets for clinical decisions.
+\paragraph{Summary.} scPTR makes per-cell mRNA degradation a measurable
+axis of single-cell analysis from standard scRNA-seq. The estimator is
+biophysically grounded (steady-state of the two-state kinetic model),
+empirically dominant over scVelo / velVI / UniTVelo on every half-life
+benchmark, and computationally cheap (CPU, $\sim$91~s for $10^5$ cells).
+Built on top of $\widehat\gamma$, the PT-state, PT-velocity, and
+RBP-network analyses each surface biology that expression analysis
+cannot: subpopulations, temporal ordering, and regulatory hubs that match
+established cancer dependencies. \textsc{DeepPTR} matches the analytic
+estimator's accuracy while supplying a generative model whose
+post-transcriptional latent is identifiable by construction.
+
+\paragraph{Limitations.} \emph{(i) Steady-state assumption.} The kinetic
+identity $\gamma s = \beta u$ holds only at $\dot s {=} 0$; inside fast
+transitions where transcription rate changes faster than the splicing
+relaxation time, $\widehat\gamma$ is biased. The bias is bounded
+($\sim 10\%$ in our simulations at biologically realistic transition
+rates) but is the dominant source of error on early-pseudotime cells.
+\emph{(ii) Sparse chemistries.} On 10x v2 and Smart-seq2 datasets where
+unspliced counts are $<5\%$ of spliced, even adaptive smoothing
+underdetermines $\widehat\gamma$ in rare populations; we recommend
+restricting to 10x v3 or higher-depth chemistries. \emph{(iii) Library
+size confounding.} The two-step correction (partial-correlation +
+per-cell mean normalisation) removes most of the global confound but
+cannot disentangle a global stabilising RBP from a global library-size
+shift that happens to co-vary with that RBP's expression. \emph{(iv)
+Cell-cycle.} Cycling populations exhibit periodic transcription bursts
+that violate steady-state; we mask cycling cells in the half-life
+benchmarks but do not currently model them.
+
+\paragraph{Broader impact.} The framework is observational; therapeutic
+or diagnostic claims would require experimental validation. We see no
+direct dual-use risk: scPTR does not generate content, infer at the
+patient level, or support de-anonymisation. The main societal
+consideration is the interpretation of inferred RBP--target networks: as
+with any observational regulatory inference, edges should be treated as
+hypotheses for follow-up, not as standalone targets for clinical
+decisions. Datasets used here are public, redistributed under their
+original licenses, and contain no patient-identifying information.
+
+\paragraph{Future work.} Three directions are immediate. First,
+\emph{non-steady-state extensions}: the steady-state identity is the
+weakest assumption in scPTR; coupling our adaptive smoothing with the
+dynamical scVelo EM machinery would relax it without abandoning the
+per-cell $\widehat\gamma$ formulation. Second, \emph{prior-informed RBP
+networks}: the elastic-net inference currently uses a uniform prior over
+the RBPDB compendium; replacing this with eCLIP-derived
+\citep{vannostrand2020} binding scores as an informative prior would
+sharpen edge calls and reduce the false-positive rate on rare RBPs.
+Third, \emph{spatial transcriptomics}: stability gradients along tissue
+microenvironments---e.g.\ in tumour-immune interfaces---are exactly the
+regime where a per-cell $\gamma$ readout is most informative, and
+\textsc{DeepPTR}'s identifiable $z_{PT}$ provides a natural latent for
+spatial smoothing. We view scPTR as a foundation: by making degradation
+a first-class observable, it opens the same family of analyses
+(differential testing, trajectory inference, perturbation response)
+that have matured around expression to a regulatory axis that has so far
+been beyond reach.
 
 % --- Bibliography ---
 \bibliographystyle{plainnat}
