@@ -38,6 +38,67 @@ scptr.tl.estimate_beta(adata)
 scptr.tl.estimate_gamma(adata)
 print(f"  Gamma layer shape: {adata.layers['gamma'].shape}")
 
+# ── Phase portrait for Fig 1A (real gene) ────────────────────────────────────
+# Pick a representative gene with a clean kinetic ceiling: high beta, many
+# non-zero (u, s) pairs, and a wide span of s. We score genes by
+# (beta * non-zero-frac * s_range) and take the top one.
+print("\n=== Phase portrait for Fig 1A ===")
+beta = np.asarray(adata.var["beta"]) if "beta" in adata.var.columns else \
+       np.asarray(adata.varm["beta"]) if "beta" in adata.varm else None
+if beta is None:
+    # Fallback: recompute beta from u/s upper-quantile slope
+    from scipy.stats import scoreatpercentile
+    u_layer = adata.layers["unspliced"].toarray() if hasattr(adata.layers["unspliced"], "toarray") else adata.layers["unspliced"]
+    s_layer = adata.layers["spliced"].toarray()  if hasattr(adata.layers["spliced"], "toarray")  else adata.layers["spliced"]
+    beta = np.array([
+        np.percentile(u_layer[:, g][s_layer[:, g] > 0] / s_layer[:, g][s_layer[:, g] > 0], 95)
+        if (s_layer[:, g] > 0).any() else 0.0
+        for g in range(adata.n_vars)
+    ])
+else:
+    u_layer = adata.layers["unspliced"].toarray() if hasattr(adata.layers["unspliced"], "toarray") else adata.layers["unspliced"]
+    s_layer = adata.layers["spliced"].toarray()  if hasattr(adata.layers["spliced"], "toarray")  else adata.layers["spliced"]
+
+# Prefer genes whose (u, s) cloud actually lies along the beta*s line:
+#   - many non-zero (u, s) pairs,
+#   - high Pearson correlation between u and s on those cells,
+#   - moderate beta (within the dataset's 25-75 percentile band so the
+#     beta*s line passes through the data, not above it),
+#   - good dynamic range in s.
+nonzero_mask = (u_layer > 0) & (s_layer > 0)
+nonzero_pairs = nonzero_mask.sum(axis=0)
+valid_beta = beta[(beta > 0) & np.isfinite(beta)]
+beta_q25, beta_q75 = np.percentile(valid_beta, [25, 75])
+
+def _score_gene(g):
+    if nonzero_pairs[g] < 100 or not (beta_q25 <= beta[g] <= beta_q75):
+        return -np.inf
+    m = nonzero_mask[:, g]
+    u_g = u_layer[m, g]; s_g = s_layer[m, g]
+    if u_g.std() < 1e-6 or s_g.std() < 1e-6:
+        return -np.inf
+    r = float(np.corrcoef(u_g, s_g)[0, 1])
+    s_range = float(s_g.max() - s_g.min())
+    # Penalise lines that overshoot the data:
+    fit_ratio = (beta[g] * np.median(s_g) + 1e-6) / (np.median(u_g) + 1e-6)
+    overshoot = 1.0 / (1.0 + abs(np.log(fit_ratio)))
+    return r * np.log1p(s_range) * overshoot
+
+scores = np.array([_score_gene(g) for g in range(adata.n_vars)])
+g_idx = int(np.argmax(scores))
+g_name = str(adata.var_names[g_idx])
+print(f"  Selected gene: {g_name} (beta={beta[g_idx]:.3f}, "
+      f"n_nonzero={int(nonzero_pairs[g_idx])}, score={scores[g_idx]:.3f})")
+
+s_g = np.asarray(s_layer[:, g_idx]).ravel()
+u_g = np.asarray(u_layer[:, g_idx]).ravel()
+gamma_g = np.asarray(adata.layers["gamma"][:, g_idx]).ravel()
+np.savez(OUT / "phase_portrait.npz",
+         s=s_g, u=u_g, gamma=gamma_g,
+         beta=float(beta[g_idx]),
+         gene=g_name)
+print("  Saved phase_portrait.npz")
+
 # ── Half-life correlation (Fig 2A) ───────────────────────────────────────────
 print("\n=== Half-life correlation ===")
 hl_schofield = scptr.datasets.schofield2018_halflives()
@@ -123,6 +184,21 @@ if "X_umap" not in adata.obsm:
 # Run PT state discovery (gamma-space PCA, UMAP, clustering)
 scptr.tl.pt_states(adata)
 print(f"  PT states found: {adata.obs['pt_state'].nunique()}")
+
+# ── Full-pancreas UMAPs for Fig 1B (expression vs gamma space) ───────────────
+print("\n=== Full-pancreas UMAPs for Fig 1B ===")
+expr_umap_full = adata.obsm["X_umap"]
+gamma_umap_full = adata.obsm.get("X_gamma_umap")
+if gamma_umap_full is None and "X_pt_umap" in adata.obsm:
+    gamma_umap_full = adata.obsm["X_pt_umap"]
+cell_types_full = adata.obs["clusters"].astype(str).values
+pt_states_full = adata.obs["pt_state"].astype(str).values
+np.savez(OUT / "panel_b_umaps.npz",
+         expr_umap=expr_umap_full,
+         gamma_umap=gamma_umap_full,
+         cell_types=cell_types_full,
+         pt_states=pt_states_full)
+print(f"  Saved panel_b_umaps.npz ({adata.n_obs} cells)")
 
 # Extract Epsilon cells
 cell_types = adata.obs["clusters"].astype(str)
