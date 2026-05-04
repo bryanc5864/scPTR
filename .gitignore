@@ -36,29 +36,18 @@ Thumbs.db
 /data/
 *.h5ad
 .pybiomart.sqlite
-.cache/
 
-# NeurIPS 2026 build/scratch artifacts
-err
-icml-extract/
+# Local-only working directories (kept out of the public repo)
+neurips2026/
+supplementary/
 supplementary.zip
-neurips2026/*.aux
-neurips2026/*.bbl
-neurips2026/*.blg
-neurips2026/*.log
-neurips2026/*.out
-neurips2026/*.toc
-
-# Keep the rendered paper PDF local only (do not publish to the public repo;
-# reviewers Googling for the paper title would otherwise find this commit
-# and break double-blind anonymity).
-neurips2026/main.pdf
-
 .supplementary-build/
 
-# Top-level scratch copies of the figure scripts (live in supplementary/code/repro/)
+# Local scratch from running figure scripts at the repo root
 /compute_fig1c_data.py
 /compute_real_figure_data.py
 /generate_figures.py
 /figures/
 /real_figure_data/
+err
+icml-extract/
