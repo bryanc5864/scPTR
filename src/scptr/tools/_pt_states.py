@@ -68,6 +68,9 @@ def pt_states(
         gamma_adata,
         resolution=resolution,
         random_state=random_state,
+        flavor="igraph",
+        n_iterations=2,
+        directed=False,
     )
 
     # UMAP
