@@ -10,6 +10,7 @@ import warnings
 
 import matplotlib
 matplotlib.use("Agg")
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,6 +18,8 @@ import scanpy as sc
 import streamlit as st
 
 warnings.filterwarnings("ignore")
+
+import scptr  # noqa: E402 — imported after matplotlib backend set
 
 st.set_page_config(
     page_title="scPTR",
@@ -174,7 +177,14 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-bottom: 1.5rem;
     animation: fadeUp 0.4s ease both;
 }
-.mc { background: #fff; padding: 1rem 1.25rem; }
+.mc { background: #fff; padding: 1rem 1.25rem;
+      animation: fadeUp 0.35s ease both; }
+.mc:nth-child(1) { animation-delay: 0.03s; }
+.mc:nth-child(2) { animation-delay: 0.07s; }
+.mc:nth-child(3) { animation-delay: 0.10s; }
+.mc:nth-child(4) { animation-delay: 0.13s; }
+.mc:nth-child(5) { animation-delay: 0.16s; }
+.mc:nth-child(6) { animation-delay: 0.19s; }
 .mc-label {
     font-size: 10px; color: #888;
     text-transform: uppercase; letter-spacing: 0.08em;
@@ -329,11 +339,17 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.25rem 0; }
 }
 
 /* pipeline steps (home) */
-.pipe { display: flex; margin: 1rem 0 1.5rem; animation: fadeUp 0.5s ease both; }
+.pipe { display: flex; margin: 1rem 0 1.5rem; }
 .pipe-step {
     flex: 1; background: #fff; border: 1px solid #ddd; border-right: none;
     padding: 0.75rem 0.9rem;
+    animation: fadeUp 0.4s ease both;
 }
+.pipe-step:nth-child(1) { animation-delay: 0.05s; }
+.pipe-step:nth-child(2) { animation-delay: 0.10s; }
+.pipe-step:nth-child(3) { animation-delay: 0.15s; }
+.pipe-step:nth-child(4) { animation-delay: 0.20s; }
+.pipe-step:nth-child(5) { animation-delay: 0.25s; }
 .pipe-step:last-child { border-right: 1px solid #ddd; }
 .pipe-n { font-size: 10px; font-weight: 700; color: #2b5797;
           text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
@@ -352,9 +368,9 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.25rem 0; }
     border-bottom: 2px solid #2b5797;
 }
 .doc-h3 {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
-    text-transform: uppercase; color: #666;
-    margin: 1rem 0 0.4rem;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #555;
+    margin: 1.2rem 0 0.5rem;
 }
 .doc-p { font-size: 13px; color: #333; line-height: 1.75; margin-bottom: 0.6rem; }
 .doc-code {
@@ -505,13 +521,22 @@ with st.sidebar:
             else:
                 cls = ""
             num = "✓" if (done.get(i, False) and i != step) else str(i)
-            st.markdown(
-                f'<div class="sb-step {cls}">'
-                f'<div class="sb-step-num">{num}</div>'
-                f'<div class="sb-step-label">{label}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+
+            # Clickable for completed steps and step 5 (always accessible after states)
+            can_jump = done.get(i, False) and i != step
+            if can_jump:
+                # Show step as a compact link button
+                col_btn, = st.columns([1])
+                if st.button(f"↩ {label}", key=f"jump_{i}", use_container_width=True):
+                    go(i); st.rerun()
+            else:
+                st.markdown(
+                    f'<div class="sb-step {cls}">'
+                    f'<div class="sb-step-num">{num}</div>'
+                    f'<div class="sb-step-label">{label}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
         st.markdown('</div>', unsafe_allow_html=True)
 
         if st.session_state.adata is not None:
@@ -557,8 +582,35 @@ if page == "home":
         unsafe_allow_html=True,
     )
 
-    if st.button("Start Analysis →"):
-        nav("analysis"); st.rerun()
+    home_c1, home_c2 = st.columns([1, 2])
+    with home_c1:
+        if st.button("Start Analysis →"):
+            nav("analysis"); st.rerun()
+    with home_c2:
+        if st.session_state.adata is not None:
+            _prog_items = [
+                ("Load Data", True),
+                ("Preprocess", st.session_state.preprocessed),
+                ("Estimate Rates", st.session_state.estimated),
+                ("PT States", st.session_state.states_done),
+                ("Results", st.session_state.states_done),
+            ]
+            _pct = sum(1 for _, v in _prog_items if v) / len(_prog_items) * 100
+            bars = "".join(
+                f'<div style="flex:1;height:4px;background:{"#2d7d4b" if v else "#e0e0e0"};margin-right:2px"></div>'
+                for _, v in _prog_items
+            )
+            st.markdown(
+                f'<div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.3rem">'
+                f'Analysis progress · {_pct:.0f}%</div>'
+                f'<div style="display:flex;align-items:center;gap:0">{bars}</div>'
+                f'<div style="font-size:12px;color:#555;margin-top:0.4rem">'
+                f'{st.session_state.dataset_name} — '
+                f'{st.session_state.adata.n_obs:,} cells · {st.session_state.adata.n_vars:,} genes</div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Resume →"):
+                nav("analysis"); st.rerun()
 
     # Pipeline
     st.markdown('<div class="sl">Analysis pipeline</div>', unsafe_allow_html=True)
@@ -652,6 +704,67 @@ elif page == "analysis" and st.session_state.step == 1:
         unsafe_allow_html=True,
     )
 
+    st.markdown('<div class="sl">Quick start</div>', unsafe_allow_html=True)
+    qs_c1, qs_c2, qs_c3 = st.columns(3, gap="large")
+    with qs_c1:
+        st.markdown(
+            '<div class="card">'
+            '<div class="card-title">Pancreas</div>'
+            '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
+            'Mouse endocrinogenesis · 3,696 cells<br>'
+            '<span style="color:#888;font-size:12px">Bastidas-Ponce et al. 2019</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Load Pancreas", key="qs_pancreas", use_container_width=True):
+            with st.spinner("Downloading pancreas dataset…"):
+                try:
+                    _adata = scptr.datasets.pancreas()
+                    st.session_state.adata = _adata
+                    st.session_state.dataset_name = "Pancreas"
+                    reset_downstream(1)
+                    go(2); st.rerun()
+                except Exception as e:
+                    st.markdown(f'<div class="ebox">Error: {e}</div>', unsafe_allow_html=True)
+    with qs_c2:
+        st.markdown(
+            '<div class="card">'
+            '<div class="card-title">Dentate Gyrus</div>'
+            '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
+            'Mouse hippocampal neurogenesis · 2,930 cells<br>'
+            '<span style="color:#888;font-size:12px">Hochgerner et al. 2018</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Load Dentate Gyrus", key="qs_dg", use_container_width=True):
+            with st.spinner("Downloading dentate gyrus dataset…"):
+                try:
+                    _adata = scptr.datasets.dentate_gyrus()
+                    st.session_state.adata = _adata
+                    st.session_state.dataset_name = "Dentate Gyrus"
+                    reset_downstream(1)
+                    go(2); st.rerun()
+                except Exception as e:
+                    st.markdown(f'<div class="ebox">Error: {e}</div>', unsafe_allow_html=True)
+    with qs_c3:
+        st.markdown(
+            '<div class="card">'
+            '<div class="card-title">Upload</div>'
+            '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
+            'Your own .h5ad file<br>'
+            '<span style="color:#888;font-size:12px">Requires spliced + unspliced layers</span>'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Upload File →", key="qs_upload", use_container_width=True):
+            # Just scroll user's attention to the upload section below
+            pass
+
+    st.markdown('<hr>', unsafe_allow_html=True)
+
     col1, col2 = st.columns(2, gap="large")
 
     with col1:
@@ -671,7 +784,6 @@ elif page == "analysis" and st.session_state.step == 1:
             unsafe_allow_html=True,
         )
         if st.button("Load Example Dataset", disabled=(example == "— select —")):
-            import scptr
             with st.spinner("Downloading and loading dataset…"):
                 try:
                     if "Pancreas" in example:
@@ -755,8 +867,6 @@ elif page == "analysis" and st.session_state.step == 1:
 # ANALYSIS — STEP 2: PREPROCESS
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "analysis" and st.session_state.step == 2:
-    import scptr
-
     adata = st.session_state.adata
     st.markdown('<div class="pt">Preprocess <span style="font-size:13px;font-weight:400;color:#aaa;letter-spacing:0">— step 2 of 5</span></div>', unsafe_allow_html=True)
     st.markdown(
@@ -903,8 +1013,6 @@ elif page == "analysis" and st.session_state.step == 2:
 # ANALYSIS — STEP 3: ESTIMATE RATES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "analysis" and st.session_state.step == 3:
-    import scptr
-
     adata = st.session_state.adata
     st.markdown('<div class="pt">Estimate Rates <span style="font-size:13px;font-weight:400;color:#aaa;letter-spacing:0">— step 3 of 5</span></div>', unsafe_allow_html=True)
     st.markdown(
@@ -1027,6 +1135,38 @@ elif page == "analysis" and st.session_state.step == 3:
             with st.expander("Traceback"):
                 st.code(traceback.format_exc())
 
+    # Phase portrait explorer (available once rates are estimated)
+    if st.session_state.estimated:
+        st.markdown('<div class="sl">Phase portrait explorer</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="ibox" style="font-size:12px">'
+            'Inspect the unspliced vs spliced phase portrait for any gene, colored by γ. '
+            'The diagonal line shows the estimated β slope. Cells above = accelerating; below = decelerating.'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        adata_est = st.session_state.adata
+        pp_col1, pp_col2 = st.columns([3, 1])
+        with pp_col1:
+            pp_gene = st.selectbox(
+                "Gene",
+                sorted(adata_est.var_names.tolist()),
+                key="pp_gene_select",
+            )
+        with pp_col2:
+            pp_cmap = st.selectbox("Color", ["viridis", "plasma", "RdBu_r", "coolwarm"], key="pp_cmap")
+        if st.button("Plot Phase Portrait", key="pp_btn"):
+            try:
+                fig = scptr.pl.phase_portrait(
+                    adata_est, genes=pp_gene, color_by="gamma",
+                    cmap=pp_cmap, show=False,
+                )
+                if fig:
+                    st.image(fig_png(fig), width=450)
+                    plt.close(fig)
+            except Exception as e:
+                st.markdown(f'<div class="ebox">Phase portrait failed: {e}</div>', unsafe_allow_html=True)
+
     st.markdown('<hr>', unsafe_allow_html=True)
     c1, c2 = st.columns([1, 6])
     with c1:
@@ -1041,8 +1181,6 @@ elif page == "analysis" and st.session_state.step == 3:
 # ANALYSIS — STEP 4: DISCOVER PT STATES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "analysis" and st.session_state.step == 4:
-    import scptr
-
     adata = st.session_state.adata
     st.markdown('<div class="pt">Discover PT States <span style="font-size:13px;font-weight:400;color:#aaa;letter-spacing:0">— step 4 of 5</span></div>', unsafe_allow_html=True)
     st.markdown(
@@ -1444,8 +1582,6 @@ elif page == "analysis" and st.session_state.step == 4:
 # ANALYSIS — STEP 5: RESULTS
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "analysis" and st.session_state.step == 5:
-    import scptr
-
     adata = st.session_state.adata
     st.markdown('<div class="pt">Results <span style="font-size:13px;font-weight:400;color:#aaa;letter-spacing:0">— step 5 of 5</span></div>', unsafe_allow_html=True)
 
@@ -1516,6 +1652,40 @@ elif page == "analysis" and st.session_state.step == 5:
                             plt.close(fig)
                     except Exception as e:
                         st.markdown(f'<div class="ebox">Heatmap failed: {e}</div>', unsafe_allow_html=True)
+
+        if "X_gamma_umap" in adata.obsm and "X_umap" in adata.obsm:
+            st.markdown('<hr>', unsafe_allow_html=True)
+            if st.button("γ-space vs Expression Comparison"):
+                with st.spinner("Building side-by-side comparison…"):
+                    try:
+                        fig = scptr.pl.pt_comparison(adata, figsize=(12, 5), show=False)
+                        if fig:
+                            st.image(fig_png(fig), use_container_width=True)
+                            plt.close(fig)
+                    except Exception as e:
+                        # Fallback: manual side-by-side
+                        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+                        for ax, basis, title in [
+                            (axes[0], "X_umap", "Expression UMAP"),
+                            (axes[1], "X_gamma_umap", "γ-space UMAP"),
+                        ]:
+                            coords = adata.obsm[basis]
+                            if "pt_state" in adata.obs.columns:
+                                labels = adata.obs["pt_state"].values
+                                unique = sorted(set(labels), key=lambda x: int(x) if str(x).isdigit() else x)
+                                cmap = plt.colormaps["tab20"].resampled(len(unique))
+                                lmap = {l: i for i, l in enumerate(unique)}
+                                c = [lmap[l] for l in labels]
+                                ax.scatter(coords[:, 0], coords[:, 1], c=c, cmap=cmap,
+                                           s=8, alpha=0.6, linewidths=0)
+                            else:
+                                ax.scatter(coords[:, 0], coords[:, 1], s=8, alpha=0.5,
+                                           color="#2b5797", linewidths=0)
+                            ax.set_title(title, fontsize=10, fontweight="bold")
+                            ax.axis("off")
+                        plt.tight_layout()
+                        st.image(fig_png(fig), use_container_width=True)
+                        plt.close(fig)
 
         if st.session_state.velocity_done:
             st.markdown('<hr>', unsafe_allow_html=True)
@@ -1803,8 +1973,6 @@ elif page == "analysis" and st.session_state.step == 5:
                 unsafe_allow_html=True,
             )
             obs_cols = [c for c in ["pt_state"] if c in adata.obs.columns]
-            if beta is not None:
-                pass  # beta is per-gene
             if obs_cols:
                 obs_csv = adata.obs[obs_cols].copy().to_csv().encode()
                 st.download_button(
@@ -1814,9 +1982,69 @@ elif page == "analysis" and st.session_state.step == 5:
                     mime="text/csv",
                 )
 
+        st.markdown('<hr>', unsafe_allow_html=True)
+        col_d1, col_d2, col_d3 = st.columns(3)
+
+        with col_d1:
+            if beta is not None:
+                st.markdown("**Gene splicing rates (β)**")
+                st.markdown(
+                    '<div style="font-size:12px;color:#555;margin-bottom:0.5rem">'
+                    'Per-gene β from phase portrait quantile regression.</div>',
+                    unsafe_allow_html=True,
+                )
+                beta_df = pd.DataFrame({"gene": beta.index, "beta": beta.values})
+                st.download_button(
+                    "Download beta.csv",
+                    beta_df.to_csv(index=False).encode(),
+                    file_name=f"beta_{st.session_state.dataset_name}.csv",
+                    mime="text/csv",
+                )
+
+        with col_d2:
+            if "tf_score" in adata.var.columns:
+                st.markdown("**Variance decomposition**")
+                st.markdown(
+                    '<div style="font-size:12px;color:#555;margin-bottom:0.5rem">'
+                    'TF and PTF score per gene (0–1).</div>',
+                    unsafe_allow_html=True,
+                )
+                vd_df = pd.DataFrame({
+                    "gene": adata.var_names,
+                    "tf_score": adata.var["tf_score"].values,
+                    "ptf_score": adata.var["ptf_score"].values,
+                })
+                st.download_button(
+                    "Download variance_decomp.csv",
+                    vd_df.to_csv(index=False).encode(),
+                    file_name=f"variance_decomp_{st.session_state.dataset_name}.csv",
+                    mime="text/csv",
+                )
+
+        with col_d3:
+            st.markdown("**Analysis parameters**")
+            st.markdown(
+                '<div style="font-size:12px;color:#555;margin-bottom:0.5rem">'
+                'Reproducibility: parameters logged by scPTR.</div>',
+                unsafe_allow_html=True,
+            )
+            params_log = adata.uns.get("scptr", {})
+            if params_log:
+                st.download_button(
+                    "Download parameters.json",
+                    json.dumps(params_log, indent=2, default=str).encode(),
+                    file_name=f"parameters_{st.session_state.dataset_name}.json",
+                    mime="application/json",
+                )
+
         if len(net) > 0:
             st.markdown('<hr>', unsafe_allow_html=True)
             st.markdown("**RBP–target network**")
+            st.markdown(
+                '<div style="font-size:12px;color:#555;margin-bottom:0.5rem">'
+                'Columns: regulator, target, weight. Positive weight = destabilizing; negative = stabilizing.</div>',
+                unsafe_allow_html=True,
+            )
             net_csv = net.to_csv(index=False).encode()
             st.download_button(
                 "Download network.csv",
