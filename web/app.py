@@ -160,7 +160,9 @@ html, body, [data-testid="stAppViewContainer"] {
     background: #fff; border: 1px solid #ddd;
     padding: 1.4rem 1.75rem; margin-bottom: 1.25rem;
     animation: fadeUp 0.4s ease both;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
+.card:hover { border-color: #b0bac8; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 .card-title {
     font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; color: #777;
@@ -171,7 +173,7 @@ html, body, [data-testid="stAppViewContainer"] {
 /* metric grid */
 .mg {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 1px; background: #d0d0d0;
     border: 1px solid #d0d0d0;
     margin-bottom: 1.5rem;
@@ -221,19 +223,27 @@ html, body, [data-testid="stAppViewContainer"] {
 .ibox { background: #eef2f9; border-left: 3px solid #2b5797;
         padding: 0.7rem 1rem; margin: 0.75rem 0;
         font-size: 13px; color: #2a3a5a; line-height: 1.6;
-        animation: fadeUp 0.3s ease both; }
+        animation: fadeUp 0.3s ease both;
+        transition: background 0.15s; }
+.ibox:hover { background: #e5ecf6; }
 .sbox { background: #eaf5ef; border-left: 3px solid #2d7d4b;
         padding: 0.7rem 1rem; margin: 0.75rem 0;
         font-size: 13px; color: #1a3d28; line-height: 1.6;
-        animation: fadeUp 0.3s ease both; }
+        animation: fadeUp 0.3s ease both;
+        transition: background 0.15s; }
+.sbox:hover { background: #dff0e8; }
 .ebox { background: #fdf0f0; border-left: 3px solid #c0392b;
         padding: 0.7rem 1rem; margin: 0.75rem 0;
         font-size: 13px; color: #5a1a1a; line-height: 1.6;
-        animation: fadeUp 0.3s ease both; }
+        animation: fadeUp 0.3s ease both;
+        transition: background 0.15s; }
+.ebox:hover { background: #f9e5e5; }
 .wbox { background: #fef9f0; border-left: 3px solid #d4860a;
         padding: 0.7rem 1rem; margin: 0.75rem 0;
         font-size: 13px; color: #4a3010; line-height: 1.6;
-        animation: fadeUp 0.3s ease both; }
+        animation: fadeUp 0.3s ease both;
+        transition: background 0.15s; }
+.wbox:hover { background: #fdf1e0; }
 
 /* radio as horizontal nav */
 [data-testid="stSidebar"] [data-testid="stRadio"] { margin: 0.5rem 0.75rem; }
@@ -297,11 +307,25 @@ html, body, [data-testid="stAppViewContainer"] {
     border: 1.5px dashed #bbb !important;
     background: #fafafa !important;
 }
+/* sidebar jump buttons — secondary style (override primary) */
+[data-testid="stSidebar"] .stButton > button {
+    background: transparent !important; color: #2b5797 !important;
+    border: 1px solid #c8d4e8 !important;
+    font-size: 10px !important; padding: 0.3rem 0.75rem !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: #eef2f9 !important; border-color: #2b5797 !important;
+}
+
 /* tabs */
+[data-testid="stTabs"] { overflow-x: auto; }
+[data-testid="stTabs"] > div > div:first-child {
+    flex-wrap: nowrap; white-space: nowrap;
+}
 [data-testid="stTabs"] button {
     border-radius: 0 !important; font-size: 11px !important;
     font-weight: 700 !important; text-transform: uppercase !important;
-    letter-spacing: 0.07em !important;
+    letter-spacing: 0.07em !important; white-space: nowrap !important;
 }
 [data-testid="stTabs"] button[aria-selected="true"] {
     color: #2b5797 !important;
@@ -344,7 +368,9 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.25rem 0; }
     flex: 1; background: #fff; border: 1px solid #ddd; border-right: none;
     padding: 0.75rem 0.9rem;
     animation: fadeUp 0.4s ease both;
+    transition: background 0.15s, border-color 0.15s;
 }
+.pipe-step:hover { background: #f7f8fa; border-color: #b8c4d4; }
 .pipe-step:nth-child(1) { animation-delay: 0.05s; }
 .pipe-step:nth-child(2) { animation-delay: 0.10s; }
 .pipe-step:nth-child(3) { animation-delay: 0.15s; }
@@ -384,18 +410,6 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.25rem 0; }
 .param-name { font-family: monospace; font-size: 12px; color: #2b5797; font-weight: 600; }
 .param-type { font-size: 11px; color: #888; font-style: italic; }
 .param-desc { font-size: 12px; color: #444; line-height: 1.5; }
-
-/* chip tags */
-.chip {
-    display: inline-block;
-    padding: 0.12rem 0.45rem;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-    text-transform: uppercase;
-    background: #e8eef5; border: 1px solid #c0d0e8; color: #2b5797;
-    margin-right: 0.25rem;
-}
-.chip.g { background: #e5f3ec; border-color: #a8d5bb; color: #2d7d4b; }
-.chip.gr { background: #f0f0f0; border-color: #ccc; color: #666; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -708,7 +722,7 @@ elif page == "analysis" and st.session_state.step == 1:
     qs_c1, qs_c2, qs_c3 = st.columns(3, gap="large")
     with qs_c1:
         st.markdown(
-            '<div class="card">'
+            '<div class="card" style="animation-delay:0.05s">'
             '<div class="card-title">Pancreas</div>'
             '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
             'Mouse endocrinogenesis · 3,696 cells<br>'
@@ -729,7 +743,7 @@ elif page == "analysis" and st.session_state.step == 1:
                     st.markdown(f'<div class="ebox">Error: {e}</div>', unsafe_allow_html=True)
     with qs_c2:
         st.markdown(
-            '<div class="card">'
+            '<div class="card" style="animation-delay:0.10s">'
             '<div class="card-title">Dentate Gyrus</div>'
             '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
             'Mouse hippocampal neurogenesis · 2,930 cells<br>'
@@ -750,7 +764,7 @@ elif page == "analysis" and st.session_state.step == 1:
                     st.markdown(f'<div class="ebox">Error: {e}</div>', unsafe_allow_html=True)
     with qs_c3:
         st.markdown(
-            '<div class="card">'
+            '<div class="card" style="animation-delay:0.15s">'
             '<div class="card-title">Upload</div>'
             '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:0.75rem">'
             'Your own .h5ad file<br>'
@@ -760,8 +774,8 @@ elif page == "analysis" and st.session_state.step == 1:
             unsafe_allow_html=True,
         )
         if st.button("Upload File →", key="qs_upload", use_container_width=True):
-            # Just scroll user's attention to the upload section below
-            pass
+            st.session_state["_show_upload"] = True
+            st.rerun()
 
     st.markdown('<hr>', unsafe_allow_html=True)
 
@@ -805,6 +819,8 @@ elif page == "analysis" and st.session_state.step == 1:
                     )
 
     with col2:
+        if st.session_state.pop("_show_upload", False):
+            st.markdown('<div class="ibox">Use the file uploader below to load your .h5ad file.</div>', unsafe_allow_html=True)
         st.markdown('<div class="sl">Upload your own</div>', unsafe_allow_html=True)
         uploaded = st.file_uploader(
             "H5AD file",
@@ -1161,7 +1177,7 @@ elif page == "analysis" and st.session_state.step == 3:
                     adata_est, genes=pp_gene, color_by="gamma",
                     cmap=pp_cmap, show=False,
                 )
-                if fig:
+                if fig is not None:
                     st.image(fig_png(fig), width=450)
                     plt.close(fig)
             except Exception as e:
@@ -1552,8 +1568,11 @@ elif page == "analysis" and st.session_state.step == 4:
                             plt.tight_layout()
                             st.image(fig_png(fig), use_container_width=True)
                             plt.close(fig)
-                        except Exception:
-                            pass
+                        except Exception as _ne:
+                            st.markdown(
+                                f'<div class="wbox">Network plot could not be rendered: {_ne}</div>',
+                                unsafe_allow_html=True,
+                            )
 
                         st.markdown(
                             '<div class="sbox">Network inference complete. '
@@ -1981,6 +2000,11 @@ elif page == "analysis" and st.session_state.step == 5:
                     file_name=f"metadata_{st.session_state.dataset_name}.csv",
                     mime="text/csv",
                 )
+            else:
+                st.markdown(
+                    '<div class="wbox" style="font-size:12px">Run <b>Discover PT States</b> first to populate cell metadata.</div>',
+                    unsafe_allow_html=True,
+                )
 
         st.markdown('<hr>', unsafe_allow_html=True)
         col_d1, col_d2, col_d3 = st.columns(3)
@@ -2035,6 +2059,11 @@ elif page == "analysis" and st.session_state.step == 5:
                     json.dumps(params_log, indent=2, default=str).encode(),
                     file_name=f"parameters_{st.session_state.dataset_name}.json",
                     mime="application/json",
+                )
+            else:
+                st.markdown(
+                    '<div class="wbox" style="font-size:12px">No logged parameters yet — run the full pipeline to populate.</div>',
+                    unsafe_allow_html=True,
                 )
 
         if len(net) > 0:
