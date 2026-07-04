@@ -1627,6 +1627,11 @@ elif page == "analysis" and st.session_state.step == 5:
 
     # ── Visualization ─────────────────────────────────────────────────────────
     with rtab1:
+        st.markdown(
+            '<div class="ibox">Choose a column to color by and click <b>Plot UMAP</b> to visualize cells. '
+            'Toggle <b>γ-space UMAP</b> to compare expression vs. post-transcriptional organization.</div>',
+            unsafe_allow_html=True,
+        )
         col_a, col_b = st.columns([2, 1])
         with col_a:
             color_opts = []
@@ -1657,7 +1662,7 @@ elif page == "analysis" and st.session_state.step == 5:
                 title=f"{viz_col} · {'γ-space' if 'gamma' in basis else 'expression'} UMAP",
             )
             plt.tight_layout()
-            st.image(fig_png(fig), width=500)
+            st.image(fig_png(fig), use_container_width=True)
             plt.close(fig)
 
         if gamma is not None and n_states > 0:
@@ -1666,7 +1671,7 @@ elif page == "analysis" and st.session_state.step == 5:
                 with st.spinner("Building heatmap…"):
                     try:
                         fig = scptr.pl.gamma_heatmap(adata, groupby="pt_state", show=False)
-                        if fig:
+                        if fig is not None:
                             st.image(fig_png(fig), use_container_width=True)
                             plt.close(fig)
                     except Exception as e:
@@ -1714,7 +1719,7 @@ elif page == "analysis" and st.session_state.step == 5:
                     scptr.pl.pt_velocity_embedding(adata, ax=ax, show=False)
                     ax.set_title("Post-transcriptional velocity", fontsize=10)
                     plt.tight_layout()
-                    st.image(fig_png(fig), width=500)
+                    st.image(fig_png(fig), use_container_width=True)
                     plt.close(fig)
                 except Exception as e:
                     st.markdown(f'<div class="ebox">Velocity plot failed: {e}</div>', unsafe_allow_html=True)
@@ -1785,21 +1790,28 @@ elif page == "analysis" and st.session_state.step == 5:
 
             # Top PTF genes table
             st.markdown('<div class="sl">Top post-transcriptionally regulated genes</div>', unsafe_allow_html=True)
-            top_ptf = ptf.sort_values(ascending=False).head(20)
-            rows = "".join(
-                f"<tr><td>{g}</td><td>{v:.3f}</td><td>{tf[g]:.3f}</td></tr>"
-                for g, v in top_ptf.items()
-            )
-            st.markdown(
-                f'<table class="tbl" style="max-width:380px">'
-                f'<thead><tr><th>Gene</th><th>PTF score</th><th>TF score</th></tr></thead>'
-                f'<tbody>{rows}</tbody></table>',
-                unsafe_allow_html=True,
-            )
+            top_ptf = ptf.sort_values(ascending=False).head(30)
+            ptf_df = pd.DataFrame({
+                "Gene": top_ptf.index,
+                "PTF score": top_ptf.values.round(4),
+                "TF score": tf[top_ptf.index].values.round(4),
+            })
+            st.dataframe(ptf_df, use_container_width=True, hide_index=True, height=420)
 
     # ── Gene rankings ─────────────────────────────────────────────────────────
     with rtab3:
-        if n_states > 0:
+        if n_states == 0:
+            st.markdown(
+                '<div class="wbox">No PT states found. Run <b>Discover PT States → PT STATES</b> tab first, '
+                'then return here to rank differentially degraded genes.</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div class="ibox">Identifies genes with significantly different γ (degradation rate) '
+                'between PT states — analogous to differential expression but in γ-space.</div>',
+                unsafe_allow_html=True,
+            )
             rank_method = st.selectbox(
                 "Statistical test",
                 ["t-test", "wilcoxon"],
@@ -1822,36 +1834,30 @@ elif page == "analysis" and st.session_state.step == 5:
                         groups,
                         default=groups[:min(4, len(groups))],
                     )
-                    rows = ""
-                    for g in show_groups:
-                        top = list(names[g])[:12]
-                        rows += (
-                            f"<tr><td class='txt'><b>PT {g}</b></td>"
-                            f"<td>{'&ensp;'.join(top)}</td></tr>"
-                        )
-                    if rows:
-                        st.markdown(
-                            f'<table class="tbl"><thead><tr>'
-                            f'<th>State</th><th>Top differentially degraded genes</th>'
-                            f'</tr></thead><tbody>{rows}</tbody></table>',
-                            unsafe_allow_html=True,
-                        )
+                    if show_groups:
+                        top_n_genes = st.slider("Genes per state", 5, 50, 15, 5, key="rank_n")
+                        all_rows = []
+                        for g in show_groups:
+                            gene_list = list(names[g])[:top_n_genes]
+                            for rank, gene in enumerate(gene_list, 1):
+                                all_rows.append({"State": f"PT {g}", "Rank": rank, "Gene": gene})
+                        if all_rows:
+                            rank_df = pd.DataFrame(all_rows)
+                            st.dataframe(rank_df, use_container_width=True, hide_index=True, height=380)
+                            st.download_button(
+                                "Download ranked genes (.csv)",
+                                rank_df.to_csv(index=False).encode(),
+                                file_name=f"ranked_genes_{st.session_state.dataset_name}.csv",
+                                mime="text/csv",
+                            )
 
         if beta is not None:
             st.markdown('<hr>', unsafe_allow_html=True)
             st.markdown('<div class="sl">Genes by splicing rate (β)</div>', unsafe_allow_html=True)
-            top_n = st.slider("Show top N genes", 10, 50, 20, 5, key="top_beta_n")
+            top_n = st.slider("Show top N genes", 10, 100, 30, 10, key="top_beta_n")
             top_beta = beta.sort_values(ascending=False).head(top_n)
-            rows = "".join(
-                f"<tr><td>{gene}</td><td>{val:.4f}</td></tr>"
-                for gene, val in top_beta.items()
-            )
-            st.markdown(
-                f'<table class="tbl" style="max-width:320px">'
-                f'<thead><tr><th>Gene</th><th>β</th></tr></thead>'
-                f'<tbody>{rows}</tbody></table>',
-                unsafe_allow_html=True,
-            )
+            beta_df = pd.DataFrame({"Gene": top_beta.index, "β (splicing rate)": top_beta.values.round(5)})
+            st.dataframe(beta_df, use_container_width=True, hide_index=True, height=350)
 
     # ── Gamma explorer ────────────────────────────────────────────────────────
     with rtab4:
@@ -2302,18 +2308,51 @@ elif page == "docs":
 
         st.markdown(
             '<div class="doc-sec">'
-            '<div class="doc-h2">Interpreting network edges</div>'
+            '<div class="doc-h2">Interpreting PT velocity</div>'
             '<div class="doc-p">'
-            'Each edge (regulator → target) has a <b>weight</b> from elastic net regression:'
+            'PT velocity captures the <b>direction and magnitude of change in γ</b> across the '
+            'γ-space neighborhood graph. Unlike RNA velocity (which reflects nascent → mature RNA '
+            'flow), PT velocity is orthogonal — it reflects where in γ-space a cell is headed.'
             '</div>'
             '<ul style="font-size:13px;color:#333;line-height:2;margin:0 0 0.5rem 1.25rem">'
-            '<li><b>Positive weight</b>: regulator expression correlates with higher γ → '
-            'the regulator <em>destabilizes</em> the target mRNA</li>'
-            '<li><b>Negative weight</b>: regulator expression correlates with lower γ → '
-            'the regulator <em>stabilizes</em> the target mRNA</li>'
-            '<li><b>Hub regulators</b> (many edges) are likely master post-transcriptional regulators '
-            '— often essential RNA-binding proteins (HNRNPA1, YBX1, ELAVL1/HuR)</li>'
+            '<li><b>Arrow direction</b>: predicted future γ profile of the cell</li>'
+            '<li><b>Arrow length</b>: magnitude of degradation-rate change (longer = faster transition)</li>'
+            '<li><b>Coherent arrows</b> in a region suggest a shared post-transcriptional program being gained or lost</li>'
+            '<li><b>Divergent arrows</b> suggest a decision point where cells adopt different degradation programs</li>'
             '</ul>'
+            '<div class="doc-p">'
+            'PT velocity precedes expression changes for 54–78% of transition genes '
+            '(pancreas p &lt; 10⁻⁵⁷, dentate gyrus p = 9.9×10⁻¹³), making it a leading '
+            'indicator of cell-fate decisions.'
+            '</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            '<div class="doc-sec">'
+            '<div class="doc-h2">Interpreting network edges</div>'
+            '<div class="doc-p">'
+            'RNA-binding proteins (RBPs) are post-transcriptional regulators that bind mRNA to control '
+            'stability, splicing, and translation. scPTR infers RBP→target edges where RBP expression '
+            'predicts γ of the target, using library-size-corrected elastic net regression.'
+            '</div>'
+            '<div class="doc-p">'
+            'Each edge has a <b>weight</b> (regression coefficient):'
+            '</div>'
+            '<ul style="font-size:13px;color:#333;line-height:2;margin:0 0 0.5rem 1.25rem">'
+            '<li><b>Positive weight</b>: RBP expression correlates with higher γ → '
+            'the RBP <em>destabilizes</em> the target mRNA</li>'
+            '<li><b>Negative weight</b>: RBP expression correlates with lower γ → '
+            'the RBP <em>stabilizes</em> the target mRNA</li>'
+            '<li><b>|weight| magnitude</b>: filter by |weight| &gt; 0.05 to retain high-confidence edges</li>'
+            '<li><b>Hub regulators</b> (many edges) are likely master regulators '
+            '— validated hubs include HNRNPA1, YBX1, ELAVL1/HuR, RBFOX1</li>'
+            '</ul>'
+            '<div class="doc-p">'
+            'To validate edges, cross-reference with CLIP-seq databases (e.g., ENCODE eCLIP, '
+            'ATtRACT) or miRNA target databases (TargetScan) for experimental support.'
+            '</div>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -2385,12 +2424,22 @@ elif page == "docs":
             '<tr><td>velocyto</td><td class="txt">Run on BAM files post-alignment; outputs loom → convert to h5ad</td></tr>'
             '<tr><td>kallisto|bustools</td><td class="txt">Use kb-python with <code>--workflow lamanno</code></td></tr>'
             '</tbody></table>'
+            '<div class="doc-h3">Input data requirements</div>'
+            '<div class="doc-p">'
+            'scPTR requires <b>raw (un-normalized) counts</b> in both layers. '
+            'Do <em>not</em> pre-normalize with Seurat, Scanpy, or other pipelines — '
+            'scPTR performs its own library-size normalization internally. '
+            'STARsolo and Alevin-fry output is already raw; velocyto loom files are also raw.'
+            '</div>'
             '<div class="doc-h3">Verify your data has required layers</div>'
             '<div class="doc-code">'
             'import anndata as ad\n'
             'adata = ad.read_h5ad("your_data.h5ad")\n'
             'print(list(adata.layers.keys()))  # must include "spliced" and "unspliced"\n'
-            'print(adata.shape)                # (n_cells, n_genes)'
+            'print(adata.shape)                # (n_cells, n_genes)\n'
+            '# Check counts are raw (integers)\n'
+            'import numpy as np\n'
+            'print(np.allclose(adata.layers["spliced"] % 1, 0))  # True = raw counts'
             '</div>'
             '</div>',
             unsafe_allow_html=True,
