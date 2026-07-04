@@ -518,6 +518,25 @@ with st.sidebar:
         st.session_state.page = _page_map[_nav_choice]
         st.rerun()
 
+    # Show data summary on home/docs pages too
+    if st.session_state.page != "analysis" and st.session_state.adata is not None:
+        _a = st.session_state.adata
+        _done_count = sum([
+            st.session_state.preprocessed,
+            st.session_state.estimated,
+            st.session_state.states_done,
+        ])
+        st.markdown(
+            f'<div class="sb-info">'
+            f'<b>{st.session_state.dataset_name}</b><br>'
+            f'{_a.n_obs:,} cells · {_a.n_vars:,} genes<br>'
+            f'<span class="sb-ok">{_done_count}/3 steps complete</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Resume Analysis →", use_container_width=True):
+            nav("analysis"); st.rerun()
+
     if st.session_state.page == "analysis":
         st.markdown('<hr style="margin:0.75rem 0">', unsafe_allow_html=True)
         st.markdown('<div class="sb-steps">', unsafe_allow_html=True)
@@ -1066,7 +1085,8 @@ elif page == "analysis" and st.session_state.step == 3:
             "Phase portrait quantile",
             0.80, 0.99, 0.95, 0.01,
             help="Upper quantile of the u/s ratio distribution used to estimate β. "
-                 "Higher values capture the kinetic upper boundary.",
+                 "Typical: 0.95 for 10x Chromium; 0.90–0.92 for Smart-seq (denser coverage). "
+                 "Lower values = more conservative boundary.",
         )
         min_r2 = st.slider(
             "Min R² for beta fit",
