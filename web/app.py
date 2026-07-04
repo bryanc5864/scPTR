@@ -1043,12 +1043,21 @@ elif page == "analysis" and st.session_state.step == 2:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                '<div class="sbox">Preprocessing complete. Click <b>Next</b> to estimate rates.</div>',
+                '<div class="sbox">'
+                'Preprocessing complete — genes filtered, layers normalized, kNN graph built, counts smoothed. '
+                '<b>Next:</b> estimate β (splicing rate) and γ (degradation rate). '
+                'Variance decomposition runs automatically with rate estimation.'
+                '</div>',
                 unsafe_allow_html=True,
             )
         except Exception as e:
             st.markdown(
-                f'<div class="ebox"><b>Preprocessing failed:</b> {e}</div>',
+                f'<div class="ebox"><b>Preprocessing failed:</b> {e}<br>'
+                f'<span style="font-size:12px;opacity:0.8">Common causes: '
+                f'too few genes after filtering (lower thresholds in step 2) · '
+                f'missing spliced/unspliced layers · '
+                f'dataset too small for PCA (n_pcs may exceed n_cells or n_genes)</span>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
             with st.expander("Traceback"):
@@ -1180,7 +1189,11 @@ elif page == "analysis" and st.session_state.step == 3:
             plt.close(fig)
 
             st.markdown(
-                '<div class="sbox">Rate estimation complete. Click <b>Next</b> to discover PT states.</div>',
+                '<div class="sbox">'
+                'β and γ estimated, variance decomposition complete. '
+                '<b>Next:</b> cluster cells in γ-space to discover PT states. '
+                'Or explore the phase portrait below for individual genes.'
+                '</div>',
                 unsafe_allow_html=True,
             )
         except Exception as e:
@@ -1671,6 +1684,22 @@ elif page == "analysis" and st.session_state.step == 5:
         ),
         unsafe_allow_html=True,
     )
+
+    # Analysis completion summary
+    _done_items = []
+    if beta is not None: _done_items.append("β estimated")
+    if gamma is not None: _done_items.append("γ estimated")
+    if "tf_score" in adata.var.columns: _done_items.append("variance decomposed")
+    if n_states > 0: _done_items.append(f"{n_states} PT states")
+    if st.session_state.velocity_done: _done_items.append("PT velocity")
+    if st.session_state.network_done: _done_items.append(f"{len(net):,} network edges")
+    if _done_items:
+        st.markdown(
+            '<div class="ibox" style="font-size:12px">'
+            f'<b>Analyses complete:</b> {" · ".join(_done_items)}'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     rtab1, rtab2, rtab3, rtab4, rtab5 = st.tabs(["VISUALIZATION", "VARIANCE DECOMP", "GENE RANKINGS", "GAMMA EXPLORER", "DOWNLOAD"])
 
