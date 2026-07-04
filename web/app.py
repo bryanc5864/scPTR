@@ -48,10 +48,6 @@ st.markdown("""
     0%, 100% { box-shadow: 0 0 0 0 rgba(43,87,151,0.3); }
     50%       { box-shadow: 0 0 0 4px rgba(43,87,151,0.1); }
 }
-@keyframes borderPulse {
-    0%, 100% { border-color: #2b5797; }
-    50%       { border-color: #5c87cc; }
-}
 
 /* base */
 html, body, [data-testid="stAppViewContainer"] {
@@ -298,7 +294,9 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stNumberInput"] label,
 [data-testid="stFileUploader"] label,
 [data-testid="stCheckbox"] label,
-[data-testid="stRadio"] label {
+[data-testid="stRadio"] label,
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label {
     font-size: 11px !important; font-weight: 700 !important;
     text-transform: uppercase !important; letter-spacing: 0.07em !important;
     color: #555 !important;
@@ -377,7 +375,11 @@ hr { border: none; border-top: 1px solid #e0e0e0; margin: 1.25rem 0; }
 .pipe-step:nth-child(4) { animation-delay: 0.20s; }
 .pipe-step:nth-child(5) { animation-delay: 0.25s; }
 .pipe-step:last-child { border-right: 1px solid #ddd; }
-.pipe-n { font-size: 10px; font-weight: 700; color: #2b5797;
+.pipe-step.done { border-top: 2px solid #2d7d4b; }
+.pipe-step.done .pipe-n { color: #2d7d4b; }
+.pipe-step.active-step { border-top: 2px solid #2b5797; }
+.pipe-step.active-step .pipe-n { color: #2b5797; }
+.pipe-n { font-size: 10px; font-weight: 700; color: #999;
           text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
 .pipe-name { font-size: 12px; font-weight: 600; color: #1a1a1a; margin-bottom: 0.15rem; }
 .pipe-desc { font-size: 11px; color: #777; line-height: 1.4; }
@@ -626,19 +628,34 @@ if page == "home":
             if st.button("Resume →"):
                 nav("analysis"); st.rerun()
 
-    # Pipeline
+    # Pipeline — dynamic done/active state
+    _s = st.session_state
+    _pipe_states = [
+        _s.adata is not None,
+        _s.preprocessed,
+        _s.estimated,
+        _s.states_done,
+        _s.states_done,
+    ]
+    _next_step = next((i for i, v in enumerate(_pipe_states) if not v), len(_pipe_states))
+    def _pipe_cls(i):
+        if _pipe_states[i]: return "done"
+        if i == _next_step: return "active-step"
+        return ""
+    def _pipe_icon(i):
+        return "✓ " if _pipe_states[i] else ""
     st.markdown('<div class="sl">Analysis pipeline</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="pipe">'
-        '<div class="pipe-step"><div class="pipe-n">01</div><div class="pipe-name">Load Data</div>'
+        f'<div class="pipe-step {_pipe_cls(0)}"><div class="pipe-n">{_pipe_icon(0)}01</div><div class="pipe-name">Load Data</div>'
         '<div class="pipe-desc">Upload .h5ad or use built-in pancreas / dentate gyrus datasets</div></div>'
-        '<div class="pipe-step"><div class="pipe-n">02</div><div class="pipe-name">Preprocess</div>'
+        f'<div class="pipe-step {_pipe_cls(1)}"><div class="pipe-n">{_pipe_icon(1)}02</div><div class="pipe-name">Preprocess</div>'
         '<div class="pipe-desc">Filter genes, normalize counts, kNN graph, Gaussian smoothing</div></div>'
-        '<div class="pipe-step"><div class="pipe-n">03</div><div class="pipe-name">Estimate Rates</div>'
+        f'<div class="pipe-step {_pipe_cls(2)}"><div class="pipe-n">{_pipe_icon(2)}03</div><div class="pipe-name">Estimate Rates</div>'
         '<div class="pipe-desc">β via quantile regression on u/s portraits; γ = β · u / s per cell</div></div>'
-        '<div class="pipe-step"><div class="pipe-n">04</div><div class="pipe-name">PT States</div>'
+        f'<div class="pipe-step {_pipe_cls(3)}"><div class="pipe-n">{_pipe_icon(3)}04</div><div class="pipe-name">PT States</div>'
         '<div class="pipe-desc">Leiden clustering in γ-space; PT velocity; RBP–target networks</div></div>'
-        '<div class="pipe-step"><div class="pipe-n">05</div><div class="pipe-name">Results</div>'
+        f'<div class="pipe-step {_pipe_cls(4)}"><div class="pipe-n">{_pipe_icon(4)}05</div><div class="pipe-name">Results</div>'
         '<div class="pipe-desc">UMAP visualization, gene rankings, download outputs</div></div>'
         '</div>',
         unsafe_allow_html=True,
@@ -648,17 +665,18 @@ if page == "home":
 
     with col1:
         st.markdown('<div class="sl">Validation</div>', unsafe_allow_html=True)
+        _g = 'background:#eaf5ef'
         st.markdown(
             '<table class="tbl">'
             '<thead><tr><th>Validation</th><th>Result</th></tr></thead>'
             '<tbody>'
-            '<tr><td class="txt">sci-fate metabolic labeling</td><td>ρ = −0.81</td></tr>'
-            '<tr><td class="txt">10x developmental half-lives</td><td>ρ = −0.33 to −0.40</td></tr>'
-            '<tr><td class="txt">vs. scVelo steady-state</td><td>−0.37 (scPTR: −0.40)</td></tr>'
-            '<tr><td class="txt">vs. velVI</td><td>−0.28 (scPTR: −0.40)</td></tr>'
-            '<tr><td class="txt">miRNA target enrichment</td><td>59% of 215 families, p = 4.7×10⁻⁶⁵</td></tr>'
-            '<tr><td class="txt">DepMap CRISPR essentiality</td><td>hub RBPs, p = 6.4×10⁻⁵</td></tr>'
-            '<tr><td class="txt">Subsampling robustness</td><td>r &gt; 0.97 at 20%</td></tr>'
+            f'<tr style="{_g}"><td class="txt">sci-fate metabolic labeling</td><td><b>ρ = −0.81</b></td></tr>'
+            f'<tr><td class="txt">10x developmental half-lives</td><td>ρ = −0.33 to −0.40</td></tr>'
+            f'<tr><td class="txt">vs. scVelo steady-state</td><td>−0.37 (scPTR: −0.40)</td></tr>'
+            f'<tr><td class="txt">vs. velVI</td><td>−0.28 (scPTR: −0.40)</td></tr>'
+            f'<tr style="{_g}"><td class="txt">miRNA target enrichment</td><td><b>59% of 215 families</b>, p = 4.7×10⁻⁶⁵</td></tr>'
+            f'<tr style="{_g}"><td class="txt">DepMap CRISPR essentiality</td><td>hub RBPs, <b>p = 6.4×10⁻⁵</b></td></tr>'
+            f'<tr><td class="txt">Subsampling robustness</td><td>r &gt; 0.97 at 20%</td></tr>'
             '</tbody></table>',
             unsafe_allow_html=True,
         )
@@ -994,12 +1012,14 @@ elif page == "analysis" and st.session_state.step == 2:
             st.session_state.preprocessed = True
             reset_downstream(2)
 
+            _cells_removed = adata.n_obs - adata_work.n_obs
+            _genes_removed = adata.n_vars - adata_work.n_vars
             st.markdown(
                 mg(
-                    ("Cells", f"{adata_work.n_obs:,}", ""),
-                    ("Genes retained", f"{adata_work.n_vars:,}", "after filtering"),
-                    ("Removed", f"{adata.n_vars - adata_work.n_vars:,}", "genes filtered out"),
-                    ("Neighbors", str(n_neighbors), "kNN"),
+                    ("Cells retained", f"{adata_work.n_obs:,}", f"−{_cells_removed:,} filtered" if _cells_removed else "all kept", "green"),
+                    ("Genes retained", f"{adata_work.n_vars:,}", f"−{_genes_removed:,} filtered"),
+                    ("Neighbors", str(n_neighbors), "kNN graph"),
+                    ("PCA dims", str(n_pcs), "for graph"),
                 ),
                 unsafe_allow_html=True,
             )
@@ -1228,7 +1248,8 @@ elif page == "analysis" and st.session_state.step == 4:
             resolution = st.slider(
                 "Resolution",
                 0.1, 2.0, 0.5, 0.05,
-                help="Higher resolution → more, smaller clusters.",
+                help="Higher resolution → more, smaller clusters. "
+                     "Typical range: 0.3–0.8. Start at 0.5 and increase if clusters are too coarse.",
             )
             rand_seed = st.number_input("Random seed", value=42, step=1)
 
@@ -1438,39 +1459,47 @@ elif page == "analysis" and st.session_state.step == 4:
                 unsafe_allow_html=True,
             )
 
-            net_c1, net_c2 = st.columns(2, gap="large")
-            with net_c1:
-                n_top = st.number_input(
-                    "Top edges per target gene",
-                    value=50, min_value=5, max_value=500,
-                    help="Maximum number of regulator–target edges to retain per gene.",
+            # Core settings
+            use_known_rbps = st.checkbox(
+                "Restrict regulators to known RBPs (recommended — faster, more interpretable)",
+                value=True,
+                help="Filter regulators to curated RNA-binding proteins only.",
+            )
+            rbp_organism = None
+            if use_known_rbps:
+                rbp_organism = st.selectbox(
+                    "RBP organism",
+                    ["human", "mouse", None],
+                    format_func=lambda x: x if x else "all species",
+                    key="rbp_org",
                 )
-                alpha = st.slider(
-                    "Elastic net mixing (α)",
-                    0.0, 1.0, 0.5, 0.05,
-                    help="0 = ridge (all regulators), 1 = lasso (sparse). Default 0.5 (elastic net).",
-                )
-                use_known_rbps = st.checkbox(
-                    "Restrict regulators to known RBPs",
-                    value=False,
-                    help="Filter regulators to curated RNA-binding proteins only. Faster and more interpretable.",
-                )
-                if use_known_rbps:
-                    rbp_organism = st.selectbox("RBP organism", ["human", "mouse", None],
-                                                format_func=lambda x: x if x else "all", key="rbp_org")
-            with net_c2:
-                custom_regs = st.text_area(
-                    "Additional regulators (optional)",
-                    value="",
-                    height=80,
-                    help="Comma or newline-separated gene names. Appended to known RBPs if that option is checked.",
-                )
-                custom_tgts = st.text_area(
-                    "Restrict to these targets (optional)",
-                    value="",
-                    height=80,
-                    help="Leave empty to use all genes as targets.",
-                )
+
+            with st.expander("Advanced options"):
+                net_c1, net_c2 = st.columns(2, gap="large")
+                with net_c1:
+                    n_top = st.number_input(
+                        "Top edges per target gene",
+                        value=50, min_value=5, max_value=500,
+                        help="Maximum number of regulator–target edges to retain per gene.",
+                    )
+                    alpha = st.slider(
+                        "Elastic net mixing (α)",
+                        0.0, 1.0, 0.5, 0.05,
+                        help="0 = ridge (all regulators retained), 1 = lasso (sparse selection). 0.5 = elastic net.",
+                    )
+                with net_c2:
+                    custom_regs = st.text_area(
+                        "Additional regulators (optional)",
+                        value="",
+                        height=80,
+                        help="Comma or newline-separated gene names. Appended to known RBPs if that option is checked.",
+                    )
+                    custom_tgts = st.text_area(
+                        "Restrict to these targets (optional)",
+                        value="",
+                        height=80,
+                        help="Leave empty to use all genes as targets.",
+                    )
 
             if st.session_state.network_done:
                 net = adata.uns.get("pt_network", pd.DataFrame())
