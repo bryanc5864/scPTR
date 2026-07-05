@@ -1275,9 +1275,11 @@ elif page == "analysis" and st.session_state.step == 3:
                 "Gene",
                 sorted(adata_est.var_names.tolist()),
                 key="pp_gene_select",
+                help="Select a gene to visualize its unspliced vs spliced phase portrait.",
             )
         with pp_col2:
-            pp_cmap = st.selectbox("Color", ["viridis", "plasma", "RdBu_r", "coolwarm"], key="pp_cmap")
+            pp_cmap = st.selectbox("Color", ["viridis", "plasma", "RdBu_r", "coolwarm"], key="pp_cmap",
+                                   help="Colormap for γ values in the phase portrait scatter.")
         if st.button("Plot Phase Portrait", key="pp_btn"):
             try:
                 fig = scptr.pl.phase_portrait(
@@ -1285,7 +1287,7 @@ elif page == "analysis" and st.session_state.step == 3:
                     cmap=pp_cmap, show=False,
                 )
                 if fig is not None:
-                    st.image(fig_png(fig), width=450)
+                    st.image(fig_png(fig), use_container_width=True)
                     plt.close(fig)
             except Exception as e:
                 st.markdown(f'<div class="ebox">Phase portrait failed: {e}</div>', unsafe_allow_html=True)
@@ -1338,7 +1340,8 @@ elif page == "analysis" and st.session_state.step == 4:
                 help="Higher resolution → more, smaller clusters. "
                      "Typical range: 0.3–0.8. Start at 0.5 and increase if clusters are too coarse.",
             )
-            rand_seed = st.number_input("Random seed", value=42, step=1)
+            rand_seed = st.number_input("Random seed", value=42, step=1,
+                                        help="Random seed for reproducible clustering and UMAP.")
 
         st.markdown(
             '<div class="ibox">'
@@ -1483,7 +1486,8 @@ elif page == "analysis" and st.session_state.step == 4:
                     horizontal=False,
                     help="Arrows show per-cell velocity; streamlines show flow patterns.",
                 )
-                arrow_size = st.slider("Arrow size", 1.0, 8.0, 3.0, 0.5, key="vel_arrow")
+                arrow_size = st.slider("Arrow size", 1.0, 8.0, 3.0, 0.5, key="vel_arrow",
+                                       help="Scale of velocity arrows on the embedding plot.")
 
             if st.session_state.velocity_done:
                 st.markdown(
@@ -1512,7 +1516,7 @@ elif page == "analysis" and st.session_state.step == 4:
                     ax.set_title(f"Post-transcriptional velocity ({'streamlines' if 'Stream' in viz_style else 'arrows'})", fontsize=10)
                     ax.axis("off")
                     plt.tight_layout()
-                    st.image(fig_png(fig), width=520)
+                    st.image(fig_png(fig), use_container_width=True)
                     plt.close(fig)
 
                     st.markdown(
