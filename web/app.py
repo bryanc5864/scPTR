@@ -929,26 +929,52 @@ elif page == "analysis" and st.session_state.step == 2:
         unsafe_allow_html=True,
     )
 
+    # Data quality summary
+    _s_layer = adata.layers["spliced"]
+    _u_layer = adata.layers["unspliced"]
+    _s_sparsity = 1.0 - float(np.count_nonzero(_s_layer)) / _s_layer.size
+    _u_sparsity = 1.0 - float(np.count_nonzero(_u_layer)) / _u_layer.size
+    _has_obs = list(adata.obs.columns)[:5]
     st.markdown(
         mg(
             ("Cells", f"{adata.n_obs:,}", ""),
             ("Genes", f"{adata.n_vars:,}", "before filtering"),
-            ("Dataset", st.session_state.dataset_name, ""),
+            ("Spliced sparsity", f"{_s_sparsity:.1%}", "zeros in matrix"),
+            ("Unspliced sparsity", f"{_u_sparsity:.1%}", "zeros in matrix"),
         ),
         unsafe_allow_html=True,
     )
+    _layer_ok = all(l in adata.layers for l in ["spliced", "unspliced"])
+    _extra_layers = [l for l in adata.layers if l not in ["spliced", "unspliced"]]
+    _layer_info = (
+        '<span style="color:#2d7d4b;font-weight:700">✓ spliced</span> &nbsp; '
+        '<span style="color:#2d7d4b;font-weight:700">✓ unspliced</span>'
+    )
+    if _extra_layers:
+        _layer_info += f' &nbsp;· also: {", ".join(_extra_layers[:4])}'
+    if _has_obs:
+        _layer_info += f'<br><span style="color:#888;font-size:11px">obs columns: {", ".join(_has_obs)}</span>'
+    st.markdown(
+        f'<div class="ibox" style="font-size:12px">'
+        f'Layers detected: {_layer_info}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
+    _rn = st.session_state.get("pp_reset_n", 0)  # reset counter — changes keys to force re-init
     col1, col2, col3 = st.columns(3, gap="large")
     with col1:
         st.markdown('<div class="sl">Gene filtering</div>', unsafe_allow_html=True)
         min_unspliced = st.number_input(
             "Min total unspliced counts per gene",
             value=10, min_value=1, step=1,
+            key=f"pp_mu_{_rn}",
             help="Genes with fewer total unspliced counts across all cells are removed.",
         )
         min_cells = st.number_input(
             "Min cells with nonzero unspliced",
             value=5, min_value=1, step=1,
+            key=f"pp_mc_{_rn}",
             help="Genes expressed in fewer cells are removed.",
         )
     with col2:
@@ -956,11 +982,13 @@ elif page == "analysis" and st.session_state.step == 2:
         min_cell_unspliced = st.number_input(
             "Min unspliced counts per cell",
             value=0, min_value=0, step=100,
+            key=f"pp_mcu_{_rn}",
             help="Cells with fewer total unspliced counts are removed. 0 = no filter.",
         )
         min_cell_spliced = st.number_input(
             "Min spliced counts per cell",
             value=0, min_value=0, step=100,
+            key=f"pp_mcs_{_rn}",
             help="Cells with fewer total spliced counts are removed. 0 = no filter.",
         )
     with col3:
@@ -968,11 +996,13 @@ elif page == "analysis" and st.session_state.step == 2:
         n_neighbors = st.number_input(
             "Neighbors (kNN graph)",
             value=30, min_value=5, max_value=100, step=5,
+            key=f"pp_nn_{_rn}",
             help="Number of nearest neighbors for the cell graph. Larger = smoother.",
         )
         n_pcs = st.number_input(
             "PCA components",
             value=30, min_value=10, max_value=100, step=5,
+            key=f"pp_np_{_rn}",
             help="PCA dimensions used for neighbor search.",
         )
 
@@ -1000,7 +1030,16 @@ elif page == "analysis" and st.session_state.step == 2:
             unsafe_allow_html=True,
         )
 
-    if st.button("Run Preprocessing"):
+    run_col, reset_col = st.columns([2, 1])
+    if "pp_reset_n" not in st.session_state:
+        st.session_state.pp_reset_n = 0
+    with reset_col:
+        if st.button("↻ Reset to defaults", help="Restore all preprocessing parameters to defaults"):
+            st.session_state.pp_reset_n += 1
+            st.rerun()
+    with run_col:
+        _run_pp = st.button("Run Preprocessing", use_container_width=True)
+    if _run_pp:
         adata_work = st.session_state.adata.copy()
         try:
             prog = st.progress(0, text="Filtering genes…")
@@ -1187,6 +1226,21 @@ elif page == "analysis" and st.session_state.step == 3:
             plt.tight_layout()
             st.image(fig_png(fig), use_container_width=True)
             plt.close(fig)
+
+            # β quality summary
+            _beta_pos_pct = (beta > 0).mean() * 100
+            _gamma_pos_pct = (np.median(adata_work.layers["gamma"], axis=0) > 0).mean() * 100
+            _quality = "good" if _beta_pos_pct > 60 else "low"
+            _quality_color = "#2d7d4b" if _quality == "good" else "#d4860a"
+            st.markdown(
+                f'<div class="ibox" style="font-size:12px">'
+                f'<b>Data quality:</b> '
+                f'{_beta_pos_pct:.0f}% of genes have estimable β · '
+                f'{_gamma_pos_pct:.0f}% have estimable γ · '
+                f'<span style="color:{_quality_color};font-weight:700">{_quality.upper()}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
             st.markdown(
                 '<div class="sbox">'
@@ -1742,6 +1796,18 @@ elif page == "analysis" and st.session_state.step == 5:
             plt.tight_layout()
             st.image(fig_png(fig), use_container_width=True)
             plt.close(fig)
+
+        # PT state UMAP using native scptr function
+        if n_states > 0 and "X_gamma_umap" in adata.obsm:
+            st.markdown('<hr>', unsafe_allow_html=True)
+            if st.button("PT State UMAP (γ-space)"):
+                try:
+                    fig = scptr.pl.pt_umap(adata, show=False)
+                    if fig is not None:
+                        st.image(fig_png(fig), use_container_width=True)
+                        plt.close(fig)
+                except Exception as e:
+                    st.markdown(f'<div class="ebox">PT UMAP failed: {e}</div>', unsafe_allow_html=True)
 
         if gamma is not None and n_states > 0:
             st.markdown('<hr>', unsafe_allow_html=True)
