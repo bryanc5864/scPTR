@@ -197,7 +197,7 @@ def main():
     res_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # LOAD SCI-FATE DATA
+    # load sci-fate data
     # =========================================================================
     print("=" * 60)
     print("LOADING SCI-FATE DATA")
@@ -205,7 +205,7 @@ def main():
     adata_raw = load_scifate_data()
 
     # =========================================================================
-    # GROUND TRUTH DEGRADATION RATES
+    # ground truth degradation rates
     # =========================================================================
     print("\n" + "=" * 60)
     print("COMPUTING GROUND TRUTH DEGRADATION RATES")
@@ -221,7 +221,7 @@ def main():
     gt.to_csv(res_dir / "ground_truth_degradation.csv", index=False)
 
     # =========================================================================
-    # PER-TIMEPOINT ANALYSIS
+    # per-timepoint analysis
     # =========================================================================
     print("\n" + "=" * 60)
     print("PER-TIMEPOINT GROUND TRUTH")
@@ -255,7 +255,7 @@ def main():
                 print(f"  {tp_list[i]} vs {tp_list[j]}: Spearman r = {r:.4f} (n={valid.sum()})")
 
     # =========================================================================
-    # RUN SCPTR PIPELINE
+    # run scptr pipeline
     # =========================================================================
     print("\n" + "=" * 60)
     print("RUNNING SCPTR PIPELINE ON SCI-FATE DATA")
@@ -288,7 +288,7 @@ def main():
     print(f"  Gamma max: {np.max(gamma):.4f}")
 
     # =========================================================================
-    # CORRELATION: SCPTR GAMMA vs GROUND TRUTH
+    # correlation: scptr gamma vs ground truth
     # =========================================================================
     print("\n" + "=" * 60)
     print("SCPTR GAMMA vs GROUND TRUTH DEGRADATION RATES")
@@ -352,7 +352,7 @@ def main():
         results["frac_new"] = {"n_genes": int(valid_frac.sum())}
 
     # =========================================================================
-    # INDEPENDENT VALIDATION: PUBLISHED HALF-LIVES (not tautological)
+    # independent validation: published half-lives (not tautological)
     # =========================================================================
     print("\n--- Independent validation: published half-life correlations ---")
     print("  (This is the key result — fully independent ground truth)")
@@ -376,7 +376,7 @@ def main():
         json.dump(results, f, indent=2)
 
     # =========================================================================
-    # SCATTER PLOTS
+    # scatter plots
     # =========================================================================
     print("\n" + "=" * 60)
     print("GENERATING FIGURES")
@@ -432,7 +432,7 @@ def main():
     save_fig(fig, "scifate_gamma_vs_ground_truth")
 
     # =========================================================================
-    # PER-TIMEPOINT VALIDATION
+    # per-timepoint validation
     # =========================================================================
     print("\n" + "=" * 60)
     print("PER-TIMEPOINT VALIDATION")
@@ -479,7 +479,7 @@ def main():
         json.dump(tp_results, f, indent=2)
 
     # =========================================================================
-    # TOP/BOTTOM GENE ANALYSIS
+    # top/bottom gene analysis
     # =========================================================================
     print("\n" + "=" * 60)
     print("TOP/BOTTOM GENE ANALYSIS")

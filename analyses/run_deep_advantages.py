@@ -106,7 +106,7 @@ def prepare_both(adata_loader, n_top=300):
 
 
 # ============================================================================
-# 1. UNCERTAINTY-GUIDED GENE FILTERING
+# 1. uncertainty-guided gene filtering
 # ============================================================================
 
 def advantage_uncertainty_filtering(adata_dp, dataset_name):
@@ -221,7 +221,7 @@ def advantage_uncertainty_filtering(adata_dp, dataset_name):
 
 
 # ============================================================================
-# 2. CELL-SPECIFIC GAMMA RESOLUTION
+# 2. cell-specific gamma resolution
 # ============================================================================
 
 def advantage_cell_resolution(adata_an, adata_dp, dataset_name, cluster_key="clusters"):
@@ -382,7 +382,7 @@ def advantage_cell_resolution(adata_an, adata_dp, dataset_name, cluster_key="clu
 
 
 # ============================================================================
-# 3. LATENT DISENTANGLEMENT DISCOVERS PT PROGRAMS
+# 3. latent disentanglement discovers pt programs
 # ============================================================================
 
 def advantage_disentanglement(adata_dp, dataset_name, cluster_key="clusters"):
@@ -547,7 +547,7 @@ def advantage_disentanglement(adata_dp, dataset_name, cluster_key="clusters"):
 
 
 # ============================================================================
-# 4. POSTERIOR-BASED STATISTICAL TESTING
+# 4. posterior-based statistical testing
 # ============================================================================
 
 def advantage_statistical_testing(adata_dp, dataset_name, cluster_key="clusters"):

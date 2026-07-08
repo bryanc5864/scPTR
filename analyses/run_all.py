@@ -48,7 +48,7 @@ def main():
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     # =========================================================================
-    # LOAD DATA
+    # load data
     # =========================================================================
     print("=" * 60)
     print("LOADING PANCREAS DATASET")
@@ -78,7 +78,7 @@ def main():
     print("  Smoothed layers (Mu, Ms)")
 
     # =========================================================================
-    # CORE ANALYSIS
+    # core analysis
     # =========================================================================
     print("\n" + "=" * 60)
     print("CORE ANALYSIS")
@@ -123,7 +123,7 @@ def main():
     print("  PT velocity computed")
 
     # =========================================================================
-    # AIM 1: BENCHMARKING
+    # aim 1: benchmarking
     # =========================================================================
     print("\n" + "=" * 60)
     print("AIM 1: BENCHMARKING")
@@ -229,7 +229,7 @@ def main():
     save_fig(fig, "subsampling_robustness", "figures/aim1")
 
     # =========================================================================
-    # AIM 2: HIDDEN PT STATES
+    # aim 2: hidden pt states
     # =========================================================================
     print("\n" + "=" * 60)
     print("AIM 2: PT STATE DISCOVERY")

@@ -103,7 +103,7 @@ def fit_deep(adata_deep):
 
 
 # ============================================================================
-# 1. ENRICHMENT WITH FULL GENE MAPPING
+# 1. enrichment with full gene mapping
 # ============================================================================
 
 def run_enrichment_mapped(adata_an, adata_deep, dataset_name):
@@ -159,7 +159,7 @@ def run_enrichment_mapped(adata_an, adata_deep, dataset_name):
 
 
 # ============================================================================
-# 2. PER-CELL-TYPE GAMMA AGREEMENT
+# 2. per-cell-type gamma agreement
 # ============================================================================
 
 def run_celltype_agreement(adata_an, adata_deep, dataset_name, cluster_key="clusters"):
@@ -225,7 +225,7 @@ def run_celltype_agreement(adata_an, adata_deep, dataset_name, cluster_key="clus
 
 
 # ============================================================================
-# 3. UNCERTAINTY CALIBRATION ON REAL DATA
+# 3. uncertainty calibration on real data
 # ============================================================================
 
 def run_uncertainty_analysis(adata_an, adata_deep, dataset_name):
@@ -369,7 +369,7 @@ def run_deep_subsampling(adata_loader, dataset_name, fractions=(0.5, 0.8)):
 
 
 # ============================================================================
-# 5. LATENT SPACE VISUALIZATION
+# 5. latent space visualization
 # ============================================================================
 
 def run_latent_analysis(adata_deep, dataset_name, cluster_key="clusters"):
@@ -453,7 +453,7 @@ def run_latent_analysis(adata_deep, dataset_name, cluster_key="clusters"):
 
 
 # ============================================================================
-# 6. GENE RANKING COMPARISON
+# 6. gene ranking comparison
 # ============================================================================
 
 def run_gene_ranking(adata_an, adata_deep, dataset_name, n_top=50):
@@ -511,7 +511,7 @@ def run_gene_ranking(adata_an, adata_deep, dataset_name, n_top=50):
 
 
 # ============================================================================
-# MAIN: RUN ON EACH DATASET
+# main: run on each dataset
 # ============================================================================
 
 def run_dataset(name, adata_loader, cluster_key="clusters"):

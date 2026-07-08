@@ -101,6 +101,57 @@ adata = scptr.datasets.sci_fate()        # Human A549 dexamethasone response (7,
 - anndata >= 0.8, scanpy >= 1.9, numpy >= 1.21, scipy >= 1.7, numba >= 0.55
 - Optional: torch >= 2.0 (DeepPTR), pooch >= 1.6 (datasets)
 
+## Reproducing results
+
+All analyses can be reproduced from scratch using the scripts in `analyses/`:
+
+```bash
+# full pipeline on pancreas (aims 1–4)
+python analyses/run_all.py
+
+# dentate gyrus
+python analyses/run_dentate_gyrus.py
+
+# sci-fate metabolic labeling validation
+python analyses/run_scifate.py
+
+# expression-invisible states + temporal precedence + RBP networks
+python analyses/run_gaps.py
+
+# deepPTR benchmarks
+python analyses/run_deep_benchmark_v2.py
+
+# cross-dataset summary
+python analyses/run_summary.py
+```
+
+Outputs (figures and JSON results) go to `output/`. The 53-test suite covers all core estimators:
+
+```bash
+pip install ".[dev]"
+pytest tests/ -v
+```
+
+## Repository structure
+
+```
+src/scptr/          core package
+  preprocessing/    filter, normalize, smooth
+  tools/            beta/gamma estimation, PT states, velocity, network inference
+  plotting/         UMAP, phase portraits, network plots
+  benchmark/        half-life validation, miRNA enrichment
+  datasets/         built-in loaders (pancreas, dentate gyrus, sci-fate)
+  deep/             DeepPTR VAE
+analyses/           analysis scripts reproducing every result
+  run_all.py        end-to-end pancreas pipeline
+  run_gaps.py       invisible states, velocity, networks
+  deep/             individual deep-benchmark scripts (01–35)
+tests/              pytest suite (53 tests)
+figures/            generated figures
+  presentation/     slides and presentation panels
+output/             analysis results (JSON + CSV, gitignored)
+```
+
 ## Citation
 
 If you use scPTR, please cite:

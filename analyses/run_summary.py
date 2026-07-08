@@ -76,7 +76,7 @@ def main():
     res_dir.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # LOAD ALL DATASETS
+    # load all datasets
     # =========================================================================
     print("=" * 60)
     print("LOADING DATASETS")
@@ -96,7 +96,7 @@ def main():
     print(f"  Shape: {adata_sf.shape}")
 
     # =========================================================================
-    # RUN PIPELINES
+    # run pipelines
     # =========================================================================
     print("\n" + "=" * 60)
     print("RUNNING PIPELINES")
@@ -113,7 +113,7 @@ def main():
     }
 
     # =========================================================================
-    # 1. CROSS-DATASET CONSISTENCY
+    # 1. cross-dataset consistency
     # =========================================================================
     print("\n" + "=" * 60)
     print("1. CROSS-DATASET CONSISTENCY")
@@ -124,7 +124,7 @@ def main():
     print(consistency.to_string(index=False))
 
     # =========================================================================
-    # 2. HALF-LIFE VALIDATION
+    # 2. half-life validation
     # =========================================================================
     print("\n" + "=" * 60)
     print("2. HALF-LIFE VALIDATION")
@@ -153,7 +153,7 @@ def main():
     hl_df_out.to_csv(res_dir / "halflife_correlations.csv", index=False)
 
     # =========================================================================
-    # 3. ARE/NMD ENRICHMENT
+    # 3. are/nmd enrichment
     # =========================================================================
     print("\n" + "=" * 60)
     print("3. ARE/NMD ENRICHMENT")
@@ -184,7 +184,7 @@ def main():
     enr_df.to_csv(res_dir / "enrichment_results.csv", index=False)
 
     # =========================================================================
-    # 4. SUBSAMPLING ROBUSTNESS
+    # 4. subsampling robustness
     # =========================================================================
     print("\n" + "=" * 60)
     print("4. SUBSAMPLING ROBUSTNESS")
@@ -207,7 +207,7 @@ def main():
     robust_all.to_csv(res_dir / "subsampling_robustness.csv", index=False)
 
     # =========================================================================
-    # 5. DATASET STATISTICS
+    # 5. dataset statistics
     # =========================================================================
     print("\n" + "=" * 60)
     print("5. DATASET STATISTICS")
@@ -334,7 +334,7 @@ def main():
     save_fig(fig, "enrichment_comparison")
 
     # =========================================================================
-    # SUMMARY TABLE
+    # summary table
     # =========================================================================
     print("\n" + "=" * 60)
     print("COMPREHENSIVE SUMMARY")

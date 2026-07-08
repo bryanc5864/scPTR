@@ -63,7 +63,7 @@ def ensure_dirs():
 
 
 # ============================================================================
-# 1. SYNTHETIC RECOVERY
+# 1. synthetic recovery
 # ============================================================================
 
 def run_synthetic_benchmark():
@@ -156,7 +156,7 @@ def run_synthetic_benchmark():
 
 
 # ============================================================================
-# 2. REAL DATA: PANCREAS + DENTATE GYRUS
+# 2. real data: pancreas + dentate gyrus
 # ============================================================================
 
 def preprocess_for_analytical(adata, cluster_key="clusters"):
@@ -434,7 +434,7 @@ def run_real_dataset(name, adata_loader, cluster_key="clusters"):
 
 
 # ============================================================================
-# 3. SCI-FATE GROUND TRUTH VALIDATION
+# 3. sci-fate ground truth validation
 # ============================================================================
 
 def run_scifate_benchmark():
@@ -646,7 +646,7 @@ def run_scifate_benchmark():
 
 
 # ============================================================================
-# 4. SUMMARY TABLE
+# 4. summary table
 # ============================================================================
 
 def print_summary(synth, pancreas, dg, scifate):

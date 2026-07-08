@@ -43,7 +43,7 @@ def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================
-    # LOAD DATA
+    # load data
     # =========================================================================
     print("=" * 60)
     print("LOADING DENTATE GYRUS DATASET")
@@ -73,7 +73,7 @@ def main():
     print("  Smoothed layers (Mu, Ms)")
 
     # =========================================================================
-    # CORE ANALYSIS
+    # core analysis
     # =========================================================================
     print("\n" + "=" * 60)
     print("CORE ANALYSIS")

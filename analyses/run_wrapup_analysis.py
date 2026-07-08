@@ -84,7 +84,7 @@ def prepare_analytical(adata_loader):
 
 
 # ============================================================================
-# 1. FAIR COMPARISON: SAME 300 GENES
+# 1. fair comparison: same 300 genes
 # ============================================================================
 
 def analysis_fair_comparison(adata_an, dataset_name, top_genes):
@@ -144,7 +144,7 @@ def analysis_fair_comparison(adata_an, dataset_name, top_genes):
 
 
 # ============================================================================
-# 2. BOOTSTRAP CONFIDENCE INTERVALS
+# 2. bootstrap confidence intervals
 # ============================================================================
 
 def analysis_bootstrap_ci(adata_an, dataset_name, n_boot=1000):
@@ -271,7 +271,7 @@ def analysis_eclip_validation(dataset_name):
 
 
 # ============================================================================
-# 4. SCI-FATE TAUTOLOGY ANALYSIS
+# 4. sci-fate tautology analysis
 # ============================================================================
 
 def analysis_scifate_tautology():
@@ -431,7 +431,7 @@ def analysis_scifate_tautology():
 
 
 # ============================================================================
-# 5. SPARSITY ANALYSIS
+# 5. sparsity analysis
 # ============================================================================
 
 def analysis_sparsity(adata_an, dataset_name):
@@ -597,7 +597,7 @@ def analysis_ci_breakdown():
 
 
 # ============================================================================
-# 7. ARE/NMD ENRICHMENT OF PT-SPECIFIC GENES
+# 7. are/nmd enrichment of pt-specific genes
 # ============================================================================
 
 def analysis_pt_gene_enrichment():
@@ -649,7 +649,7 @@ def analysis_pt_gene_enrichment():
 
 
 # ============================================================================
-# 8. HONEST LIMITATIONS TABLE
+# 8. honest limitations table
 # ============================================================================
 
 def print_limitations():
