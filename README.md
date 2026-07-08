@@ -132,31 +132,36 @@ pip install ".[dev]"
 pytest tests/ -v
 ```
 
-## Real-data talk figure bundle
+## Figures
 
-The current slide-focused real-data PNG bundle is committed at:
+All committed figures are in `figures/` with descriptive `fig_` names:
 
-```text
-figures/talk_real_data/
-```
+| File | What it shows |
+|------|---------------|
+| `fig_gamma_estimation.png` | Phase portrait, beta distribution, median gamma distribution |
+| `fig_halflife_validation.png` | Half-life Spearman correlations (pancreas + DG) |
+| `fig_variance_decomposition.png` | TF/PTF variance decomposition |
+| `fig_pancreas_global_umap.png` | Expression vs γ-space UMAP comparison (pancreas) |
+| `fig_dentate_global_umap.png` | Expression vs γ-space UMAP comparison (DG) |
+| `fig_invisible_states_pancreas.png` | Silhouette overview: 3/8 pancreas cell types invisible to expression |
+| `fig_invisible_states_dentate.png` | Silhouette overview: 6/11 DG cell types invisible to expression |
+| `fig_invisible_epsilon.png` | Epsilon substate UMAPs (sil γ=0.276, expr=−0.042) |
+| `fig_invisible_pre_endocrine.png` | Pre-endocrine substate UMAPs |
+| `fig_invisible_dg_*.png` | DG per-cell-type invisible-state UMAPs |
+| `fig_permutation_control.png` | Expression clustering fails to recover γ-space structure |
+| `fig_pt_velocity_pancreas.png` | PT velocity field on γ-space UMAP (pancreas) |
+| `fig_pt_velocity_dentate.png` | PT velocity field on γ-space UMAP (DG) |
+| `fig_pt_velocity_orthogonality.png` | PT velocity ≈ orthogonal to RNA velocity (cosine ≈ 0) |
+| `fig_gamma_leads_expression.png` | γ leads expression at transitions: 63% pancreas, 78% DG |
+| `fig_rbp_hubs.png` | Top RBP hubs from network inference |
+| `fig_library_size_correction.png` | Library-size correction: 98.9% → 33.7% destabilizing |
+| `fig_depmap_essentials.png` | Hub RBPs more essential in cancer (p = 6.4×10⁻⁵) |
+| `fig_neuroblastoma_network.png` | Neuroblastoma: 66% stabilizing, HNRNPA2B1/PABPC1 top hubs |
+| `fig_results_summary.png` | Summary: PT states, genes used, γ-better subsets |
 
-The matching numeric tables and manifest are committed at:
-
-```text
-figures/talk_real_data_results/
-```
-
-The generator is:
-
-```text
-analyses/make_talk_real_figures.py
-```
-
-The in-depth slide mapping and reproduction record is:
-
-```text
-docs/TALK_REAL_FIGURES.md
-```
+Numeric tables: `figures/results/`  
+Generators: `analyses/make_figures.py` (pipeline figures), `analyses/make_figures_claims.py` (claim figures from existing output)  
+Documentation: `docs/FIGURES.md`
 
 ## Repository structure
 
@@ -171,10 +176,12 @@ src/scptr/          core package
 analyses/           analysis scripts reproducing every result
   run_all.py        end-to-end pancreas pipeline
   run_gaps.py       invisible states, velocity, networks
+  make_figures.py   regenerate all pipeline figures
+  make_figures_claims.py  claim-backing figures from existing output/
   deep/             individual deep-benchmark scripts (01–35)
 tests/              pytest suite (53 tests)
-figures/            generated figures
-  presentation/     slides and presentation panels
+figures/            committed figures (fig_*.png)
+  results/          numeric tables behind figures
 output/             analysis results (JSON + CSV, gitignored)
 ```
 

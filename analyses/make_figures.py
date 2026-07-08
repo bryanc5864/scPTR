@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""Generate real-data figures for the scPTR talk.
+"""Generate real-data figures for the scPTR paper.
 
-The goal of this script is to avoid ambiguous or duplicated slide figures. It
+The goal of this script is to avoid ambiguous or duplicated figures. It
 recomputes the pancreas and dentate gyrus analyses from real spliced/unspliced
-AnnData inputs, then writes a clean talk-focused figure folder:
+AnnData inputs, then writes a clean figure folder:
 
-    figures/talk_real_data/
+    figures/
 
 The highest-priority outputs are:
   - matched expression-space vs gamma-space UMAPs
@@ -38,8 +38,8 @@ from sklearn.metrics import silhouette_score
 
 
 ROOT = Path(__file__).parent.parent
-FIG_DIR = ROOT / "figures" / "talk_real_data"
-RES_DIR = ROOT / "figures" / "talk_real_data_results"
+FIG_DIR = ROOT / "figures"
+RES_DIR = ROOT / "figures" / "results"
 SEED = 42
 
 
@@ -417,7 +417,7 @@ def estimator_qc_figure(adata: AnnData) -> None:
     axes[2].set_title("Per-gene degradation-rate distribution")
     fig.suptitle("Pancreas estimator QC from real spliced/unspliced counts", y=1.02, fontsize=13)
     fig.tight_layout()
-    save_fig(fig, "slide_08_pancreas_estimator_qc")
+    save_fig(fig, "fig_gamma_estimation")
 
 
 def halflife_figure(results: list[DatasetResult]) -> None:
@@ -456,7 +456,7 @@ def halflife_figure(results: list[DatasetResult]) -> None:
     ax.set_title("Real-data half-life validation: high gamma means shorter half-life")
     ax.legend(frameon=False)
     fig.tight_layout()
-    save_fig(fig, "slide_11_pancreas_dentate_halflife_validation")
+    save_fig(fig, "fig_halflife_validation")
 
 
 def variance_figure(results: list[DatasetResult]) -> None:
@@ -491,7 +491,7 @@ def variance_figure(results: list[DatasetResult]) -> None:
         axes[1].text(i, val + 0.02, f"{val:.0%}", ha="center")
     fig.suptitle("Most variation is post-transcriptional in these real datasets", y=1.02, fontsize=13)
     fig.tight_layout()
-    save_fig(fig, "slide_13_variance_decomposition_pancreas_dentate")
+    save_fig(fig, "fig_variance_decomposition")
 
 
 def velocity_figures(results: list[DatasetResult]) -> None:
@@ -499,7 +499,7 @@ def velocity_figures(results: list[DatasetResult]) -> None:
         fig = scptr.pl.pt_velocity_embedding(res.adata, density=0.28, arrow_size=1.5, show=False)
         if fig is not None:
             fig.axes[0].set_title(f"{res.name}: post-transcriptional velocity on gamma UMAP")
-            save_fig(fig, f"slide_17_{res.name}_pt_velocity")
+            save_fig(fig, f"fig_pt_velocity_{res.name}")
 
 
 def network_hub_figure(results: list[DatasetResult]) -> None:
@@ -549,7 +549,7 @@ def network_hub_figure(results: list[DatasetResult]) -> None:
         ax.set_xlabel("Significant target edges")
     fig.suptitle("RBP hub recovery from real gamma and expression matrices", y=1.02, fontsize=13)
     fig.tight_layout()
-    save_fig(fig, "slide_18_pancreas_dentate_rbp_hubs")
+    save_fig(fig, "fig_rbp_hubs")
 
 
 def summary_figure(results: list[DatasetResult]) -> None:
@@ -564,7 +564,7 @@ def summary_figure(results: list[DatasetResult]) -> None:
             "gamma_better_subsets": int((res.subset_stats["silhouette_gap"] > 0.05).sum()),
         })
     df = pd.DataFrame(summary)
-    save_table(df, "talk_real_data_summary")
+    save_table(df, "results_summary")
 
     fig, axes = plt.subplots(1, 3, figsize=(13, 4.3))
     axes[0].bar(df["dataset"], df["pt_states"], color="#4C78A8")
@@ -576,9 +576,9 @@ def summary_figure(results: list[DatasetResult]) -> None:
     axes[2].bar(df["dataset"], df["gamma_better_subsets"], color="#F58518")
     axes[2].set_ylabel("Cell types")
     axes[2].set_title("Subsets where gamma separates better")
-    fig.suptitle("Talk real-data figure set: pancreas and dentate gyrus", y=1.02, fontsize=13)
+    fig.suptitle("Results at a glance: pancreas and dentate gyrus", y=1.02, fontsize=13)
     fig.tight_layout()
-    save_fig(fig, "slide_22_results_at_a_glance_pancreas_dentate")
+    save_fig(fig, "fig_results_summary")
 
 
 def write_manifest(results: list[DatasetResult]) -> None:
@@ -586,7 +586,7 @@ def write_manifest(results: list[DatasetResult]) -> None:
     manifest = {
         "source": "Generated from real scPTR pancreas and dentate gyrus loaders.",
         "pdf_reference": "Local slide reference used during regeneration: ~/Downloads/scPTR talk.pdf",
-        "output_dir": "figures/talk_real_data",
+        "output_dir": "figures",
         "n_png": len(files),
         "files": files,
         "datasets": [
@@ -630,18 +630,18 @@ def main() -> None:
     halflife_figure(results)
     variance_figure(results)
 
-    global_umap_figure(pancreas, "Pancreas", "slide_15_pancreas")
-    global_umap_figure(dentate, "Dentate gyrus", "slide_15_dentate_gyrus")
+    global_umap_figure(pancreas, "Pancreas", "fig_pancreas_global_umap")
+    global_umap_figure(dentate, "Dentate gyrus", "fig_dentate_global_umap")
 
-    silhouette_overview(pancreas_stats, "Pancreas", "slide_16_pancreas_silhouette_overview")
-    silhouette_overview(dentate_stats, "Dentate gyrus", "slide_16_dentate_gyrus_silhouette_overview")
+    silhouette_overview(pancreas_stats, "Pancreas", "fig_invisible_states_pancreas")
+    silhouette_overview(dentate_stats, "Dentate gyrus", "fig_invisible_states_dentate")
 
-    subset_umap_figure(pancreas, "Pancreas", "Epsilon", "slide_16_pancreas_epsilon_substate_umaps")
-    subset_umap_figure(pancreas, "Pancreas", "Pre-endocrine", "slide_16_pancreas_pre_endocrine_substate_umaps")
-    subset_umap_figure(dentate, "Dentate gyrus", "Endothelial", "slide_16_dentate_endothelial_substate_umaps")
-    subset_umap_figure(dentate, "Dentate gyrus", "GABA", "slide_16_dentate_gaba_substate_umaps")
-    subset_umap_figure(dentate, "Dentate gyrus", "Microglia", "slide_16_dentate_microglia_substate_umaps")
-    subset_umap_figure(dentate, "Dentate gyrus", "Radial Glia-like", "slide_16_dentate_radial_glia_substate_umaps")
+    subset_umap_figure(pancreas, "Pancreas", "Epsilon", "fig_invisible_epsilon")
+    subset_umap_figure(pancreas, "Pancreas", "Pre-endocrine", "fig_invisible_pre_endocrine")
+    subset_umap_figure(dentate, "Dentate gyrus", "Endothelial", "fig_invisible_dg_endothelial")
+    subset_umap_figure(dentate, "Dentate gyrus", "GABA", "fig_invisible_dg_gaba")
+    subset_umap_figure(dentate, "Dentate gyrus", "Microglia", "fig_invisible_dg_microglia")
+    subset_umap_figure(dentate, "Dentate gyrus", "Radial Glia-like", "fig_invisible_dg_radial_glia")
 
     velocity_figures(results)
     network_hub_figure(results)
