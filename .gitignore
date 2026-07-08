@@ -25,6 +25,23 @@ htmlcov/
 # Output (generated results)
 output/
 
+# Paper/LaTeX artifacts
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.sty
+*.bst
+*.bib
+abstract.tex
+abstract.pdf
+example_paper.*
+icml*
+algorithmic*
+fancyhdr*
+paper/
+
 # OS
 .DS_Store
 Thumbs.db
