@@ -265,7 +265,7 @@ def run_velocity_comparison(adata, dataset_name):
     adata_scv = adata.copy()
 
     # scvelo pipeline
-    scv.pp.filter_and_normalize(adata_scv, min_shared_counts=20, n_top_genes=2000)
+    scv.pp.filter_and_normalize(adata_scv, min_shared_counts=20)
     scv.pp.moments(adata_scv, n_pcs=30, n_neighbors=30)
     scv.tl.velocity(adata_scv)
 

@@ -55,7 +55,7 @@ def main(args: argparse.Namespace) -> None:
     scptr.tl.pt_states(adata, resolution=args.resolution)
 
     # Comparison plot
-    fig = scptr.pl.pt_comparison(adata)
+    fig = scptr.pl.pt_comparison(adata, show=False)
     save_figure(fig, "expression_vs_gamma_clustering", "figures/aim2")
 
     # Compute overlap statistics (Adjusted Rand Index)

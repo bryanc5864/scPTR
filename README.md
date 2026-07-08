@@ -132,6 +132,21 @@ pip install ".[dev]"
 pytest tests/ -v
 ```
 
+## Regenerated labelled figure bundle
+
+The paper-style regenerated PNG bundle is committed at:
+
+```text
+figures/reproduced_paper_labelled/
+```
+
+The in-depth reproduction record, including data downloads, environment
+versions, exact commands, compatibility notes, and a 31-file figure manifest, is:
+
+```text
+docs/FIGURE_REPRODUCTION.md
+```
+
 ## Repository structure
 
 ```
