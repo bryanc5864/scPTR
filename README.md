@@ -132,19 +132,30 @@ pip install ".[dev]"
 pytest tests/ -v
 ```
 
-## Regenerated labelled figure bundle
+## Real-data talk figure bundle
 
-The paper-style regenerated PNG bundle is committed at:
+The current slide-focused real-data PNG bundle is committed at:
 
 ```text
-figures/reproduced_paper_labelled/
+figures/talk_real_data/
 ```
 
-The in-depth reproduction record, including data downloads, environment
-versions, exact commands, compatibility notes, and a 31-file figure manifest, is:
+The matching numeric tables and manifest are committed at:
 
 ```text
-docs/FIGURE_REPRODUCTION.md
+figures/talk_real_data_results/
+```
+
+The generator is:
+
+```text
+analyses/make_talk_real_figures.py
+```
+
+The in-depth slide mapping and reproduction record is:
+
+```text
+docs/TALK_REAL_FIGURES.md
 ```
 
 ## Repository structure

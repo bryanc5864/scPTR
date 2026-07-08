@@ -1,0 +1,5 @@
+dataset,reference,spearman_r,n_genes
+pancreas,Herzog2017 mouse,-0.34966969085899036,4611
+pancreas,Schofield2018 human,-0.4020873326088653,4308
+dentate_gyrus,Herzog2017 mouse,-0.3179587682344816,1217
+dentate_gyrus,Schofield2018 human,-0.3812073018847205,1126
