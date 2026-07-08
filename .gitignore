@@ -64,7 +64,6 @@ supplementary.zip
 /compute_fig1c_data.py
 /compute_real_figure_data.py
 /generate_figures.py
-/figures/
 /real_figure_data/
 err
 icml-extract/
